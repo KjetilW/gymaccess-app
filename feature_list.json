@@ -454,7 +454,7 @@
       "Step 5: Verify individual codes are listed per member",
       "Step 6: Verify each code shows the member name and PIN"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

@@ -848,7 +848,7 @@
       "Step 6: Verify subscription details are shown",
       "Step 7: Verify action buttons (suspend, cancel, resend) are available"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -881,7 +881,7 @@
       "Step 2: Navigate to the gym's signup page",
       "Step 3: Verify location is displayed on the page"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -891,7 +891,7 @@
       "Step 2: Navigate to the gym's signup page",
       "Step 3: Verify '299 NOK/month' or similar is displayed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -901,7 +901,7 @@
       "Step 2: Verify a friendly error message is shown",
       "Step 3: Verify no crash or blank page"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -927,7 +927,7 @@
       "Step 6: Filter by 'Cancelled' status",
       "Step 7: Verify only cancelled members are shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1145,7 +1145,7 @@
       "Step 2: Verify terms and conditions link or text is present",
       "Step 3: Verify checkbox for accepting terms exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

@@ -1,0 +1,203 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+interface MemberDetail {
+  member_id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  status: string;
+  access_code: string | null;
+  created_at: string;
+  updated_at: string;
+  provider: string | null;
+  provider_subscription_id: string | null;
+  start_date: string | null;
+  subscription_status: string | null;
+}
+
+const STATUS_STYLES: Record<string, string> = {
+  active: 'bg-forest-100 text-forest-800',
+  pending: 'bg-yellow-100 text-yellow-800',
+  past_due: 'bg-orange-100 text-orange-800',
+  cancelled: 'bg-gray-100 text-gray-500',
+  suspended: 'bg-red-100 text-red-700',
+  expired: 'bg-gray-100 text-gray-500',
+};
+
+export default function MemberDetailPage() {
+  const { memberId } = useParams<{ memberId: string }>();
+  const router = useRouter();
+  const [member, setMember] = useState<MemberDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [actionMsg, setActionMsg] = useState('');
+
+  const loadMember = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_URL}/admin/members/${memberId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Not found');
+      setMember(await res.json());
+    } catch {
+      setError('Member not found');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadMember(); }, [memberId]);
+
+  const doAction = async (action: 'suspend' | 'cancel' | 'resend') => {
+    const token = localStorage.getItem('token');
+    setActionLoading(action);
+    setActionMsg('');
+    try {
+      await fetch(`${API_URL}/admin/members/${memberId}/${action}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setActionMsg(action === 'resend' ? 'Access info resent.' : `Member ${action}led.`);
+      await loadMember();
+    } catch {
+      setActionMsg('Action failed.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-3xl mx-auto px-6 py-8 flex items-center justify-center py-24">
+        <div className="w-8 h-8 border-2 border-forest-900 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !member) {
+    return (
+      <div className="max-w-3xl mx-auto px-6 py-8 text-center py-24">
+        <p className="text-forest-900 font-display font-bold text-xl mb-2">Member not found</p>
+        <Link href="/admin/members" className="text-sm text-forest-700 hover:underline">← Back to members</Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto px-6 py-8">
+      <div className="mb-6">
+        <Link href="/admin/members" className="text-sm text-gray-500 hover:text-forest-700 hover:underline flex items-center gap-1">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Members
+        </Link>
+      </div>
+
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="font-display font-bold text-2xl text-forest-900">{member.name}</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Member since {new Date(member.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        </div>
+        <span className={`inline-flex px-3 py-1 rounded-full text-sm font-semibold capitalize ${STATUS_STYLES[member.status] || 'bg-gray-100 text-gray-600'}`}>
+          {member.status.replace('_', ' ')}
+        </span>
+      </div>
+
+      {/* Contact info */}
+      <div className="bg-white rounded-2xl border border-warm-200 p-6 mb-4">
+        <h2 className="font-display font-semibold text-base text-forest-900 mb-4">Contact Information</h2>
+        <dl className="space-y-3">
+          <div className="flex gap-4">
+            <dt className="w-28 text-xs font-semibold uppercase tracking-wider text-gray-400 pt-0.5">Email</dt>
+            <dd className="text-sm text-forest-900">{member.email}</dd>
+          </div>
+          <div className="flex gap-4">
+            <dt className="w-28 text-xs font-semibold uppercase tracking-wider text-gray-400 pt-0.5">Phone</dt>
+            <dd className="text-sm text-forest-900">{member.phone || <span className="text-gray-400">—</span>}</dd>
+          </div>
+          <div className="flex gap-4">
+            <dt className="w-28 text-xs font-semibold uppercase tracking-wider text-gray-400 pt-0.5">Access Code</dt>
+            <dd>
+              {member.access_code
+                ? <span className="font-mono text-sm text-forest-700 bg-forest-50 px-2 py-1 rounded">{member.access_code}</span>
+                : <span className="text-gray-400 text-sm">—</span>
+              }
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      {/* Subscription */}
+      <div className="bg-white rounded-2xl border border-warm-200 p-6 mb-4">
+        <h2 className="font-display font-semibold text-base text-forest-900 mb-4">Subscription</h2>
+        <dl className="space-y-3">
+          <div className="flex gap-4">
+            <dt className="w-28 text-xs font-semibold uppercase tracking-wider text-gray-400 pt-0.5">Status</dt>
+            <dd className="text-sm text-forest-900 capitalize">{member.subscription_status || <span className="text-gray-400">No subscription</span>}</dd>
+          </div>
+          <div className="flex gap-4">
+            <dt className="w-28 text-xs font-semibold uppercase tracking-wider text-gray-400 pt-0.5">Provider</dt>
+            <dd className="text-sm text-forest-900 capitalize">{member.provider || <span className="text-gray-400">—</span>}</dd>
+          </div>
+          {member.start_date && (
+            <div className="flex gap-4">
+              <dt className="w-28 text-xs font-semibold uppercase tracking-wider text-gray-400 pt-0.5">Started</dt>
+              <dd className="text-sm text-forest-900">{new Date(member.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</dd>
+            </div>
+          )}
+          {member.provider_subscription_id && (
+            <div className="flex gap-4">
+              <dt className="w-28 text-xs font-semibold uppercase tracking-wider text-gray-400 pt-0.5">Stripe ID</dt>
+              <dd className="text-sm font-mono text-gray-500">{member.provider_subscription_id}</dd>
+            </div>
+          )}
+        </dl>
+      </div>
+
+      {/* Actions */}
+      <div className="bg-white rounded-2xl border border-warm-200 p-6">
+        <h2 className="font-display font-semibold text-base text-forest-900 mb-4">Actions</h2>
+        {actionMsg && (
+          <p className="text-sm text-forest-700 bg-forest-50 border border-forest-200 rounded-xl px-4 py-2 mb-4">{actionMsg}</p>
+        )}
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => doAction('resend')}
+            disabled={!!actionLoading}
+            className="px-4 py-2 text-sm font-medium border border-warm-200 rounded-xl text-forest-700 hover:bg-forest-50 disabled:opacity-50 transition-colors"
+          >
+            {actionLoading === 'resend' ? 'Sending…' : 'Resend Access Info'}
+          </button>
+          {member.status === 'active' && (
+            <button
+              onClick={() => doAction('suspend')}
+              disabled={!!actionLoading}
+              className="px-4 py-2 text-sm font-medium border border-orange-200 rounded-xl text-orange-600 hover:bg-orange-50 disabled:opacity-50 transition-colors"
+            >
+              {actionLoading === 'suspend' ? 'Suspending…' : 'Suspend Member'}
+            </button>
+          )}
+          {member.status !== 'cancelled' && (
+            <button
+              onClick={() => doAction('cancel')}
+              disabled={!!actionLoading}
+              className="px-4 py-2 text-sm font-medium border border-red-200 rounded-xl text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
+            >
+              {actionLoading === 'cancel' ? 'Cancelling…' : 'Cancel Membership'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

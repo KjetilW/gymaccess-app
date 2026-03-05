@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -28,6 +29,7 @@ export default function MembersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const loadMembers = useCallback(async (q = '') => {
@@ -63,12 +65,16 @@ export default function MembersPage() {
     }
   };
 
+  const filtered = statusFilter ? members.filter(m => m.status === statusFilter) : members;
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display font-bold text-2xl text-forest-900">Members</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{members.length} total</p>
+          <p className="text-gray-500 text-sm mt-0.5">
+            {statusFilter ? `${filtered.length} of ${members.length} total` : `${members.length} total`}
+          </p>
         </div>
       </div>
 
@@ -87,6 +93,19 @@ export default function MembersPage() {
               className="w-full pl-9 pr-4 py-2 rounded-xl border border-warm-200 text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent"
             />
           </div>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="px-3 py-2 rounded-xl border border-warm-200 text-sm text-forest-900 focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent bg-white"
+          >
+            <option value="">All statuses</option>
+            <option value="active">Active</option>
+            <option value="pending">Pending</option>
+            <option value="past_due">Past Due</option>
+            <option value="suspended">Suspended</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="expired">Expired</option>
+          </select>
           <button
             onClick={() => loadMembers(search)}
             className="px-4 py-2 text-sm font-medium bg-forest-900 text-white rounded-xl hover:bg-forest-800 transition-colors"
@@ -101,11 +120,15 @@ export default function MembersPage() {
           </div>
         ) : error ? (
           <div className="p-12 text-center text-red-500">{error}</div>
-        ) : members.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="p-16 text-center">
             <div className="w-16 h-16 bg-forest-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">👥</div>
-            <h3 className="font-display font-bold text-xl text-forest-900 mb-2">No members yet</h3>
-            <p className="text-gray-500 text-sm">Share your gym&apos;s signup link to get started.</p>
+            <h3 className="font-display font-bold text-xl text-forest-900 mb-2">
+              {statusFilter ? `No ${statusFilter} members` : 'No members yet'}
+            </h3>
+            <p className="text-gray-500 text-sm">
+              {statusFilter ? 'Try a different filter.' : "Share your gym's signup link to get started."}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -120,10 +143,10 @@ export default function MembersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-warm-50">
-                {members.map(member => (
+                {filtered.map(member => (
                   <tr key={member.member_id} className="hover:bg-warm-50 transition-colors">
                     <td className="px-5 py-4">
-                      <div className="font-medium text-forest-900 text-sm">{member.name}</div>
+                      <Link href={`/admin/members/${member.member_id}`} className="font-medium text-forest-900 text-sm hover:text-forest-700 hover:underline">{member.name}</Link>
                       <div className="text-xs text-gray-500 mt-0.5">{member.email}</div>
                       {member.phone && <div className="text-xs text-gray-400">{member.phone}</div>}
                     </td>

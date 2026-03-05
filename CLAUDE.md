@@ -116,3 +116,6 @@ SMTP_HOST / SMTP_USER / SMTP_PASSWORD
 ACCESS_CODE_LENGTH
 DEFAULT_MEMBERSHIP_PRICE
 ```
+
+## Frontend design
+When doing frontend design, always use the frontend-design skill.

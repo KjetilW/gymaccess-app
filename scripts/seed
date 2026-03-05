@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "Seeding demo data..."
+
+docker compose exec -T postgres psql -U gymaccess -d gymaccess << 'SQL'
+-- Demo gym
+INSERT INTO gyms (gym_id, name, location, membership_price, billing_interval, access_type, shared_pin)
+VALUES ('00000000-0000-0000-0000-000000000001', 'Nordfjord Gym', 'Nordfjordeid, Norway', 299, 'monthly', 'shared_pin', '4821')
+ON CONFLICT DO NOTHING;
+
+-- Demo admin (password: admin123)
+INSERT INTO admins (admin_id, gym_id, name, email, password_hash)
+VALUES ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000001', 'Admin User', 'admin@nordfjordgym.no', '$2b$10$8Q5KzF3rKf7CqXlGFG5GyOHGrWuHhYxGPLwAHs5iR9lPU0w7xVmEe')
+ON CONFLICT DO NOTHING;
+
+-- Link admin to gym
+UPDATE gyms SET admin_user = '00000000-0000-0000-0000-000000000010' WHERE gym_id = '00000000-0000-0000-0000-000000000001';
+
+-- Demo members
+INSERT INTO members (member_id, gym_id, name, email, phone, status)
+VALUES
+  ('00000000-0000-0000-0000-000000000100', '00000000-0000-0000-0000-000000000001', 'Lars Hansen', 'lars@example.no', '+4712345678', 'active'),
+  ('00000000-0000-0000-0000-000000000101', '00000000-0000-0000-0000-000000000001', 'Anna Olsen', 'anna@example.no', '+4787654321', 'active'),
+  ('00000000-0000-0000-0000-000000000102', '00000000-0000-0000-0000-000000000001', 'Erik Berg', 'erik@example.no', '+4711223344', 'pending'),
+  ('00000000-0000-0000-0000-000000000103', '00000000-0000-0000-0000-000000000001', 'Kari Dahl', 'kari@example.no', '+4755667788', 'cancelled'),
+  ('00000000-0000-0000-0000-000000000104', '00000000-0000-0000-0000-000000000001', 'Per Nilsen', 'per@example.no', '+4799887766', 'past_due')
+ON CONFLICT DO NOTHING;
+
+-- Demo subscriptions for active members
+INSERT INTO subscriptions (member_id, provider, provider_subscription_id, status, start_date)
+VALUES
+  ('00000000-0000-0000-0000-000000000100', 'stripe', 'sub_demo_lars', 'active', NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-000000000101', 'stripe', 'sub_demo_anna', 'active', NOW() - INTERVAL '60 days')
+ON CONFLICT DO NOTHING;
+
+-- Demo access codes for active members
+INSERT INTO access_codes (member_id, code, valid_from)
+VALUES
+  ('00000000-0000-0000-0000-000000000100', '4821', NOW() - INTERVAL '30 days'),
+  ('00000000-0000-0000-0000-000000000101', '4821', NOW() - INTERVAL '60 days')
+ON CONFLICT DO NOTHING;
+
+SQL
+
+echo "Seed data loaded successfully!"
+echo ""
+echo "Demo login credentials:"
+echo "  Email:    admin@nordfjordgym.no"
+echo "  Password: admin123"

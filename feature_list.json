@@ -1,0 +1,2081 @@
+[
+  {
+    "category": "functional",
+    "description": "Landing page loads and displays product information for GymAccess",
+    "steps": [
+      "Step 1: Navigate to http://localhost:3000",
+      "Step 2: Verify page loads without errors",
+      "Step 3: Verify product name 'OpenGym' or 'GymAccess' is displayed",
+      "Step 4: Verify a call-to-action for gym owners is present"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can register a new gym with required fields",
+    "steps": [
+      "Step 1: Navigate to http://localhost:3000/admin/register",
+      "Step 2: Fill in gym name 'Nordfjord Gym'",
+      "Step 3: Fill in location 'Nordfjordeid, Norway'",
+      "Step 4: Select access type 'Shared PIN'",
+      "Step 5: Enter membership price '299'",
+      "Step 6: Select billing frequency 'monthly'",
+      "Step 7: Submit form",
+      "Step 8: Verify success message or redirect to admin dashboard",
+      "Step 9: Verify gym appears in the system",
+      "Step 10: Verify all entered fields are persisted correctly"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can register a gym with yearly billing frequency",
+    "steps": [
+      "Step 1: Navigate to gym registration page",
+      "Step 2: Fill in required gym details",
+      "Step 3: Select billing frequency 'yearly'",
+      "Step 4: Submit form",
+      "Step 5: Verify gym is created with yearly billing interval"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin registration validates required fields",
+    "steps": [
+      "Step 1: Navigate to gym registration page",
+      "Step 2: Submit form without filling any fields",
+      "Step 3: Verify validation errors appear for gym name",
+      "Step 4: Verify validation errors appear for location",
+      "Step 5: Verify validation errors appear for membership price",
+      "Step 6: Fill in only gym name and submit",
+      "Step 7: Verify remaining validation errors still show"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can select 'Individual PIN' as access type during gym setup",
+    "steps": [
+      "Step 1: Navigate to gym registration page",
+      "Step 2: Fill in required gym details",
+      "Step 3: Select access type 'Individual PIN'",
+      "Step 4: Submit form",
+      "Step 5: Verify gym is created with Individual PIN access type"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can select 'Smart Lock' as access type during gym setup",
+    "steps": [
+      "Step 1: Navigate to gym registration page",
+      "Step 2: Fill in required gym details",
+      "Step 3: Select access type 'Smart Lock'",
+      "Step 4: Submit form",
+      "Step 5: Verify gym is created with Smart Lock access type"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Public signup page loads for a specific gym",
+    "steps": [
+      "Step 1: Create a gym via API or admin UI",
+      "Step 2: Navigate to http://localhost:3000/join/{gym-id}",
+      "Step 3: Verify the signup page loads",
+      "Step 4: Verify the gym name is displayed on the page",
+      "Step 5: Verify membership price is displayed",
+      "Step 6: Verify a signup form is present"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Member can complete signup flow with name, email, and phone",
+    "steps": [
+      "Step 1: Navigate to public signup page for a gym",
+      "Step 2: Enter name 'Test Member'",
+      "Step 3: Enter email 'test@example.com'",
+      "Step 4: Enter phone '+4712345678'",
+      "Step 5: Accept terms and conditions",
+      "Step 6: Click proceed to payment",
+      "Step 7: Verify redirect to payment page or Stripe checkout",
+      "Step 8: Verify member record is created in the system with status 'Pending'"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Signup page requires terms acceptance before proceeding",
+    "steps": [
+      "Step 1: Navigate to public signup page for a gym",
+      "Step 2: Fill in name, email, and phone",
+      "Step 3: Do NOT accept terms",
+      "Step 4: Try to proceed to payment",
+      "Step 5: Verify an error message about terms acceptance is shown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Signup page validates email format",
+    "steps": [
+      "Step 1: Navigate to public signup page",
+      "Step 2: Enter invalid email 'notanemail'",
+      "Step 3: Try to submit",
+      "Step 4: Verify email validation error is shown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Signup page validates required fields",
+    "steps": [
+      "Step 1: Navigate to public signup page",
+      "Step 2: Submit form without any data",
+      "Step 3: Verify validation error for name",
+      "Step 4: Verify validation error for email",
+      "Step 5: Verify validation error for terms acceptance"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Stripe checkout session is created when member proceeds to payment",
+    "steps": [
+      "Step 1: Navigate to public signup page",
+      "Step 2: Complete signup form with valid data",
+      "Step 3: Accept terms and proceed",
+      "Step 4: Verify Stripe checkout session is created via API",
+      "Step 5: Verify the checkout session has correct price amount",
+      "Step 6: Verify the checkout session has correct billing interval"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Successful Stripe payment activates membership via webhook",
+    "steps": [
+      "Step 1: Create a member through signup flow",
+      "Step 2: Simulate Stripe checkout.session.completed webhook",
+      "Step 3: Verify member status changes from 'Pending' to 'Active'",
+      "Step 4: Verify subscription record is created",
+      "Step 5: Verify subscription status is 'active'",
+      "Step 6: Verify access code is generated for the member",
+      "Step 7: Verify welcome notification is triggered"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Stripe webhook endpoint accepts and verifies webhook signatures",
+    "steps": [
+      "Step 1: Send POST to http://localhost:8080/webhooks/stripe with valid signature",
+      "Step 2: Verify 200 response",
+      "Step 3: Send POST with invalid signature",
+      "Step 4: Verify 400 or 401 response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Payment failure webhook transitions member to PastDue status",
+    "steps": [
+      "Step 1: Create an active member with subscription",
+      "Step 2: Simulate invoice.payment_failed webhook from Stripe",
+      "Step 3: Verify member status changes to 'PastDue'",
+      "Step 4: Verify payment failure notification is triggered"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Subscription cancellation webhook transitions member to Cancelled",
+    "steps": [
+      "Step 1: Create an active member with subscription",
+      "Step 2: Simulate customer.subscription.deleted webhook",
+      "Step 3: Verify member status changes to 'Cancelled'",
+      "Step 4: Verify access code is revoked",
+      "Step 5: Verify cancellation notification is triggered"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Subscription renewal webhook keeps member Active",
+    "steps": [
+      "Step 1: Create an active member with subscription",
+      "Step 2: Simulate invoice.payment_succeeded webhook",
+      "Step 3: Verify member status remains 'Active'",
+      "Step 4: Verify payment receipt notification is triggered"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "PastDue member regains Active status on successful payment retry",
+    "steps": [
+      "Step 1: Create a member with PastDue status",
+      "Step 2: Simulate invoice.payment_succeeded webhook",
+      "Step 3: Verify member status changes back to 'Active'",
+      "Step 4: Verify access code is regenerated or reactivated"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Member status transitions follow valid state machine (Pending->Active->PastDue->Cancelled/Expired)",
+    "steps": [
+      "Step 1: Create member, verify status is 'Pending'",
+      "Step 2: Activate via webhook, verify status is 'Active'",
+      "Step 3: Fail payment via webhook, verify status is 'PastDue'",
+      "Step 4: Cancel subscription via webhook, verify status is 'Cancelled'",
+      "Step 5: Verify that invalid transitions are rejected (e.g., Pending->Cancelled directly)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Shared PIN access code is assigned to all active members of a gym",
+    "steps": [
+      "Step 1: Create a gym with 'Shared PIN' access type",
+      "Step 2: Set gym PIN to '4821'",
+      "Step 3: Create and activate member 1",
+      "Step 4: Verify member 1 receives PIN '4821'",
+      "Step 5: Create and activate member 2",
+      "Step 6: Verify member 2 receives same PIN '4821'",
+      "Step 7: Verify both members see the same code"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Individual PIN is generated uniquely per member",
+    "steps": [
+      "Step 1: Create a gym with 'Individual PIN' access type",
+      "Step 2: Create and activate member 1",
+      "Step 3: Verify member 1 receives a unique PIN",
+      "Step 4: Create and activate member 2",
+      "Step 5: Verify member 2 receives a different PIN than member 1",
+      "Step 6: Verify both PINs are of the configured length"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Access code is generated automatically when membership becomes active",
+    "steps": [
+      "Step 1: Create a gym with Individual PIN access type",
+      "Step 2: Create a member (status Pending, no access code)",
+      "Step 3: Activate membership via payment webhook",
+      "Step 4: Verify access code record is created",
+      "Step 5: Verify access code has valid_from set to now",
+      "Step 6: Verify access code is stored in the database"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Access code is revoked when membership is cancelled",
+    "steps": [
+      "Step 1: Create an active member with an access code",
+      "Step 2: Cancel the membership via webhook",
+      "Step 3: Verify the access code valid_to is set",
+      "Step 4: Verify the member no longer has a valid access code"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can rotate the shared PIN for a gym",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Navigate to Access section of admin dashboard",
+      "Step 3: Verify current shared PIN is displayed",
+      "Step 4: Click 'Rotate PIN' button",
+      "Step 5: Verify new PIN is generated and displayed",
+      "Step 6: Verify old PIN is no longer valid",
+      "Step 7: Verify all active members are notified of new PIN"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Access codes respect configured ACCESS_CODE_LENGTH",
+    "steps": [
+      "Step 1: Set ACCESS_CODE_LENGTH to 6 in environment",
+      "Step 2: Create a gym with Individual PIN",
+      "Step 3: Create and activate a member",
+      "Step 4: Verify generated PIN has exactly 6 digits"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Welcome email is sent when membership is created and activated",
+    "steps": [
+      "Step 1: Create and activate a new member",
+      "Step 2: Verify welcome email notification is queued/sent",
+      "Step 3: Verify email contains gym name",
+      "Step 4: Verify email contains access code",
+      "Step 5: Verify email is sent to the member's email address"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Payment receipt notification is sent on successful payment",
+    "steps": [
+      "Step 1: Trigger a successful payment webhook for an active member",
+      "Step 2: Verify receipt notification is queued/sent",
+      "Step 3: Verify notification contains payment amount"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Payment failure reminder is sent when payment fails",
+    "steps": [
+      "Step 1: Trigger a payment failure webhook",
+      "Step 2: Verify payment reminder notification is queued/sent",
+      "Step 3: Verify notification mentions payment issue"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Cancellation notification is sent when membership is cancelled",
+    "steps": [
+      "Step 1: Cancel an active membership",
+      "Step 2: Verify cancellation notification is queued/sent",
+      "Step 3: Verify notification mentions access expiration"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Access code notification is sent when code is generated",
+    "steps": [
+      "Step 1: Generate an access code for a member",
+      "Step 2: Verify access code notification is queued/sent",
+      "Step 3: Verify notification contains the access code"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin dashboard loads and shows overview for logged-in admin",
+    "steps": [
+      "Step 1: Log in as admin user",
+      "Step 2: Navigate to http://localhost:3000/admin",
+      "Step 3: Verify dashboard loads without errors",
+      "Step 4: Verify navigation shows Members, Access, Payments, Settings sections"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin Members section lists all gym members with correct info",
+    "steps": [
+      "Step 1: Create a gym with 3 members in various states",
+      "Step 2: Log in as admin",
+      "Step 3: Navigate to Members section",
+      "Step 4: Verify all 3 members are listed",
+      "Step 5: Verify each member shows name",
+      "Step 6: Verify each member shows status (Active/Pending/etc)",
+      "Step 7: Verify each member shows last payment date",
+      "Step 8: Verify each member shows access code",
+      "Step 9: Verify members can be sorted or filtered by status",
+      "Step 10: Verify the total member count is displayed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can suspend a member from the members list",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Navigate to Members section",
+      "Step 3: Find an active member",
+      "Step 4: Click 'Suspend' action",
+      "Step 5: Confirm the suspension",
+      "Step 6: Verify member status changes",
+      "Step 7: Verify member's access code is revoked"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can cancel a member's membership",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Navigate to Members section",
+      "Step 3: Find an active member",
+      "Step 4: Click 'Cancel membership' action",
+      "Step 5: Confirm cancellation",
+      "Step 6: Verify member status changes to Cancelled",
+      "Step 7: Verify Stripe subscription is cancelled"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can resend access info to a member",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Navigate to Members section",
+      "Step 3: Find an active member",
+      "Step 4: Click 'Resend access info' action",
+      "Step 5: Verify notification is sent to the member with access code"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin Access section shows current gym PIN and individual codes",
+    "steps": [
+      "Step 1: Create a gym with Shared PIN access and set PIN",
+      "Step 2: Log in as admin",
+      "Step 3: Navigate to Access section",
+      "Step 4: Verify current gym PIN is displayed",
+      "Step 5: Verify option to rotate PIN is available"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin Access section shows individual codes for Individual PIN gyms",
+    "steps": [
+      "Step 1: Create a gym with Individual PIN access",
+      "Step 2: Create 3 active members",
+      "Step 3: Log in as admin",
+      "Step 4: Navigate to Access section",
+      "Step 5: Verify individual codes are listed per member",
+      "Step 6: Verify each code shows the member name and PIN"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin Payments section shows monthly revenue",
+    "steps": [
+      "Step 1: Create a gym with several active paying members",
+      "Step 2: Log in as admin",
+      "Step 3: Navigate to Payments section",
+      "Step 4: Verify monthly revenue figure is displayed",
+      "Step 5: Verify the amount matches expected total from active subscriptions"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin Payments section shows active subscription count",
+    "steps": [
+      "Step 1: Create a gym with mix of active and cancelled members",
+      "Step 2: Log in as admin",
+      "Step 3: Navigate to Payments section",
+      "Step 4: Verify active subscription count is correct"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin Payments section shows failed payments",
+    "steps": [
+      "Step 1: Create a gym with members, some with failed payments",
+      "Step 2: Log in as admin",
+      "Step 3: Navigate to Payments section",
+      "Step 4: Verify failed payment count or list is shown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin Settings allows changing membership price",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Navigate to Settings section",
+      "Step 3: Change membership price from 299 to 399",
+      "Step 4: Save settings",
+      "Step 5: Verify new price is persisted",
+      "Step 6: Verify public signup page shows updated price"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin Settings allows changing billing interval",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Navigate to Settings",
+      "Step 3: Change billing interval from monthly to yearly",
+      "Step 4: Save settings",
+      "Step 5: Verify new interval is persisted"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin Settings allows changing access type",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Navigate to Settings",
+      "Step 3: Change access type from Shared PIN to Individual PIN",
+      "Step 4: Save settings",
+      "Step 5: Verify access type is persisted"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin Settings allows editing notification templates",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Navigate to Settings",
+      "Step 3: Find notification templates section",
+      "Step 4: Edit welcome email template",
+      "Step 5: Save changes",
+      "Step 6: Verify template changes are persisted"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin login requires valid credentials",
+    "steps": [
+      "Step 1: Navigate to admin login page",
+      "Step 2: Enter invalid credentials",
+      "Step 3: Submit login form",
+      "Step 4: Verify error message is shown",
+      "Step 5: Verify user is not redirected to dashboard"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin login with valid credentials grants access to dashboard",
+    "steps": [
+      "Step 1: Navigate to admin login page",
+      "Step 2: Enter valid admin email and password",
+      "Step 3: Submit login form",
+      "Step 4: Verify redirect to admin dashboard",
+      "Step 5: Verify admin name or email is shown in the UI"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin logout clears session and redirects to login",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Click logout button",
+      "Step 3: Verify redirect to login page",
+      "Step 4: Verify accessing /admin redirects to login"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Unauthenticated users cannot access admin dashboard",
+    "steps": [
+      "Step 1: Clear all cookies/session",
+      "Step 2: Navigate to http://localhost:3000/admin",
+      "Step 3: Verify redirect to login page"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API POST /members creates a new member record",
+    "steps": [
+      "Step 1: Send POST to /members with name, email, phone, gym_id",
+      "Step 2: Verify 201 response",
+      "Step 3: Verify response contains member_id",
+      "Step 4: Verify member status is 'Pending'",
+      "Step 5: Verify member is associated with correct gym"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API POST /members validates required fields",
+    "steps": [
+      "Step 1: Send POST to /members with missing name",
+      "Step 2: Verify 400 response with validation error",
+      "Step 3: Send POST with invalid email format",
+      "Step 4: Verify 400 response with validation error"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API POST /subscriptions/activate activates a membership",
+    "steps": [
+      "Step 1: Create a pending member via API",
+      "Step 2: Send POST to /subscriptions/activate with member_id and subscription details",
+      "Step 3: Verify member status changes to Active",
+      "Step 4: Verify subscription record is created"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API POST /access/generate creates an access code",
+    "steps": [
+      "Step 1: Create an active member",
+      "Step 2: Send POST to /access/generate with member_id",
+      "Step 3: Verify access code is returned",
+      "Step 4: Verify code is persisted in database"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API POST /access/revoke revokes a member's access code",
+    "steps": [
+      "Step 1: Create an active member with access code",
+      "Step 2: Send POST to /access/revoke with member_id",
+      "Step 3: Verify access code is invalidated",
+      "Step 4: Verify response confirms revocation"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Database migration creates all required tables",
+    "steps": [
+      "Step 1: Run database migrations",
+      "Step 2: Verify 'gyms' table exists with correct columns",
+      "Step 3: Verify 'members' table exists with correct columns",
+      "Step 4: Verify 'subscriptions' table exists with correct columns",
+      "Step 5: Verify 'access_codes' table exists with correct columns"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Gym entity has all required fields in database",
+    "steps": [
+      "Step 1: Check gyms table schema",
+      "Step 2: Verify gym_id (primary key) exists",
+      "Step 3: Verify name, location, admin_user, membership_price, billing_interval, access_type columns exist"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Member entity has all required fields in database",
+    "steps": [
+      "Step 1: Check members table schema",
+      "Step 2: Verify member_id, gym_id, name, email, phone, status, created_at columns exist",
+      "Step 3: Verify gym_id is a foreign key to gyms table"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Subscription entity has all required fields in database",
+    "steps": [
+      "Step 1: Check subscriptions table schema",
+      "Step 2: Verify subscription_id, member_id, provider, provider_subscription_id, status, start_date, end_date columns exist",
+      "Step 3: Verify member_id is a foreign key to members table"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "AccessCode entity has all required fields in database",
+    "steps": [
+      "Step 1: Check access_codes table schema",
+      "Step 2: Verify code_id, member_id, code, valid_from, valid_to, device_id columns exist",
+      "Step 3: Verify member_id is a foreign key to members table"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Docker Compose starts all services successfully",
+    "steps": [
+      "Step 1: Run docker compose up -d",
+      "Step 2: Verify frontend container is running",
+      "Step 3: Verify api container is running",
+      "Step 4: Verify worker container is running",
+      "Step 5: Verify postgres container is running",
+      "Step 6: Verify all containers stay healthy for 30 seconds"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Frontend is accessible at http://localhost:3000",
+    "steps": [
+      "Step 1: Start docker compose",
+      "Step 2: Navigate to http://localhost:3000",
+      "Step 3: Verify page loads with 200 status"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API is accessible at http://localhost:8080",
+    "steps": [
+      "Step 1: Start docker compose",
+      "Step 2: Send GET to http://localhost:8080/health",
+      "Step 3: Verify 200 response with health status"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "PostgreSQL database is accessible and persists data across restarts",
+    "steps": [
+      "Step 1: Start docker compose",
+      "Step 2: Insert a record into the database",
+      "Step 3: Restart containers with docker compose restart",
+      "Step 4: Verify the record still exists"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Database can be fully reset with docker compose down -v",
+    "steps": [
+      "Step 1: Insert test data",
+      "Step 2: Run docker compose down -v",
+      "Step 3: Run docker compose up",
+      "Step 4: Verify database is empty (tables recreated via migrations)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Environment variables are loaded from .env file",
+    "steps": [
+      "Step 1: Verify .env.example exists with documented variables",
+      "Step 2: Copy .env.example to .env",
+      "Step 3: Start docker compose",
+      "Step 4: Verify API reads DATABASE_URL from environment",
+      "Step 5: Verify API reads STRIPE_API_KEY from environment"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Seed script creates demo gym and test members",
+    "steps": [
+      "Step 1: Start docker compose",
+      "Step 2: Run ./scripts/seed",
+      "Step 3: Verify a demo gym is created",
+      "Step 4: Verify test members exist in various states",
+      "Step 5: Verify admin login works with seed credentials"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Migration script runs database migrations",
+    "steps": [
+      "Step 1: Start docker compose with empty database",
+      "Step 2: Run ./scripts/migrate",
+      "Step 3: Verify all tables are created",
+      "Step 4: Verify migrations are idempotent (run again without error)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Full automation flow: signup -> payment -> activation -> access code -> notification",
+    "steps": [
+      "Step 1: Create a gym with Shared PIN access",
+      "Step 2: Navigate to public signup page",
+      "Step 3: Fill in member details",
+      "Step 4: Accept terms",
+      "Step 5: Proceed to payment",
+      "Step 6: Simulate successful Stripe payment webhook",
+      "Step 7: Verify member status is Active",
+      "Step 8: Verify access code is generated",
+      "Step 9: Verify welcome email is sent with access code",
+      "Step 10: Verify member appears in admin members list as Active",
+      "Step 11: Verify payment appears in admin payments section"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Full automation flow with Individual PIN: unique code per member",
+    "steps": [
+      "Step 1: Create a gym with Individual PIN access",
+      "Step 2: Sign up member 1 and activate",
+      "Step 3: Verify member 1 gets a unique PIN",
+      "Step 4: Sign up member 2 and activate",
+      "Step 5: Verify member 2 gets a different unique PIN",
+      "Step 6: Verify admin access section shows both individual PINs",
+      "Step 7: Cancel member 1's subscription",
+      "Step 8: Verify member 1's PIN is revoked",
+      "Step 9: Verify member 2's PIN is still active",
+      "Step 10: Verify notifications sent at each step"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Full membership lifecycle: Pending -> Active -> PastDue -> Active -> Cancelled",
+    "steps": [
+      "Step 1: Create member via signup (status: Pending)",
+      "Step 2: Process payment webhook (status: Active)",
+      "Step 3: Verify access code generated",
+      "Step 4: Process payment failure webhook (status: PastDue)",
+      "Step 5: Verify access code revoked or flagged",
+      "Step 6: Process successful payment retry webhook (status: Active)",
+      "Step 7: Verify access code restored",
+      "Step 8: Process cancellation webhook (status: Cancelled)",
+      "Step 9: Verify access code permanently revoked",
+      "Step 10: Verify all state transitions logged",
+      "Step 11: Verify notifications sent for each transition"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can view member details page",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Navigate to Members section",
+      "Step 3: Click on a member name",
+      "Step 4: Verify member detail page loads",
+      "Step 5: Verify name, email, phone, status, access code are displayed",
+      "Step 6: Verify subscription details are shown",
+      "Step 7: Verify action buttons (suspend, cancel, resend) are available"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Worker service processes async tasks from queue",
+    "steps": [
+      "Step 1: Verify worker container is running",
+      "Step 2: Trigger an action that queues a task (e.g., send notification)",
+      "Step 3: Verify worker picks up and processes the task",
+      "Step 4: Verify task completion is logged"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Worker retries failed notification delivery",
+    "steps": [
+      "Step 1: Configure SMTP to an unreachable server",
+      "Step 2: Trigger a notification",
+      "Step 3: Verify worker attempts delivery",
+      "Step 4: Verify worker retries after failure",
+      "Step 5: Verify retry is logged"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Signup page shows gym location information",
+    "steps": [
+      "Step 1: Create a gym with location 'Nordfjordeid, Norway'",
+      "Step 2: Navigate to the gym's signup page",
+      "Step 3: Verify location is displayed on the page"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Signup page shows billing frequency to the member",
+    "steps": [
+      "Step 1: Create a gym with monthly billing at 299 NOK",
+      "Step 2: Navigate to the gym's signup page",
+      "Step 3: Verify '299 NOK/month' or similar is displayed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Signup page for invalid gym ID shows error",
+    "steps": [
+      "Step 1: Navigate to /join/nonexistent-gym-id",
+      "Step 2: Verify a friendly error message is shown",
+      "Step 3: Verify no crash or blank page"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can search/filter members by name",
+    "steps": [
+      "Step 1: Create multiple members with different names",
+      "Step 2: Log in as admin",
+      "Step 3: Navigate to Members section",
+      "Step 4: Enter search term matching one member",
+      "Step 5: Verify only matching member(s) are shown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can filter members by status",
+    "steps": [
+      "Step 1: Create members in Active, Pending, Cancelled states",
+      "Step 2: Log in as admin",
+      "Step 3: Navigate to Members section",
+      "Step 4: Filter by 'Active' status",
+      "Step 5: Verify only active members are shown",
+      "Step 6: Filter by 'Cancelled' status",
+      "Step 7: Verify only cancelled members are shown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Duplicate email signup for same gym is prevented",
+    "steps": [
+      "Step 1: Create a member with email test@example.com for gym 1",
+      "Step 2: Try to create another member with same email for gym 1",
+      "Step 3: Verify error about duplicate email",
+      "Step 4: Verify original member is unaffected"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Same email can sign up for different gyms",
+    "steps": [
+      "Step 1: Create gym 1 and gym 2",
+      "Step 2: Sign up with test@example.com for gym 1",
+      "Step 3: Sign up with test@example.com for gym 2",
+      "Step 4: Verify both memberships exist independently"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API returns proper error codes for invalid requests",
+    "steps": [
+      "Step 1: Send GET to non-existent endpoint",
+      "Step 2: Verify 404 response",
+      "Step 3: Send POST with invalid JSON body",
+      "Step 4: Verify 400 response",
+      "Step 5: Send request without authentication to protected endpoint",
+      "Step 6: Verify 401 response"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API health check endpoint returns service status",
+    "steps": [
+      "Step 1: Send GET to http://localhost:8080/health",
+      "Step 2: Verify 200 response",
+      "Step 3: Verify response includes database connectivity status"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Stripe checkout creates subscription with correct price from gym settings",
+    "steps": [
+      "Step 1: Create gym with price 499 NOK monthly",
+      "Step 2: Initiate member signup for this gym",
+      "Step 3: Verify Stripe checkout session has price 499",
+      "Step 4: Verify billing interval is monthly"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Stripe checkout for yearly gym creates annual subscription",
+    "steps": [
+      "Step 1: Create gym with price 2999 NOK yearly",
+      "Step 2: Initiate member signup",
+      "Step 3: Verify Stripe checkout session has yearly billing interval"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin dashboard shows correct member counts by status",
+    "steps": [
+      "Step 1: Create gym with 5 Active, 2 Pending, 1 Cancelled, 1 PastDue members",
+      "Step 2: Log in as admin",
+      "Step 3: Navigate to dashboard",
+      "Step 4: Verify Active count shows 5",
+      "Step 5: Verify Pending count shows 2",
+      "Step 6: Verify total member count shows 9"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can only see members for their own gym",
+    "steps": [
+      "Step 1: Create gym 1 with admin 1 and 3 members",
+      "Step 2: Create gym 2 with admin 2 and 2 members",
+      "Step 3: Log in as admin 1",
+      "Step 4: Verify only gym 1's 3 members are visible",
+      "Step 5: Verify gym 2's members are not accessible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Expired subscription transitions member to Expired status",
+    "steps": [
+      "Step 1: Create active member with subscription",
+      "Step 2: Simulate subscription end date passing",
+      "Step 3: Verify member status transitions to Expired",
+      "Step 4: Verify access code is revoked"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "HTTPS redirect works in production configuration",
+    "steps": [
+      "Step 1: Verify reverse proxy configuration includes TLS settings",
+      "Step 2: Verify HTTP to HTTPS redirect is configured",
+      "Step 3: Verify TLS termination configuration exists"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Webhook signature verification rejects tampered payloads",
+    "steps": [
+      "Step 1: Send webhook with correct event but wrong signature",
+      "Step 2: Verify request is rejected with 400/401",
+      "Step 3: Verify no state changes occur from rejected webhook"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Access codes are stored encrypted in the database",
+    "steps": [
+      "Step 1: Generate an access code for a member",
+      "Step 2: Query the database directly",
+      "Step 3: Verify the stored code is encrypted/hashed, not plain text"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin password is hashed in the database",
+    "steps": [
+      "Step 1: Create an admin user",
+      "Step 2: Query the database for the admin record",
+      "Step 3: Verify password is hashed, not stored in plain text"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Rate limiting protects API endpoints from abuse",
+    "steps": [
+      "Step 1: Send 100 rapid requests to the same endpoint",
+      "Step 2: Verify rate limit response (429) is returned after threshold"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Logs are accessible via docker compose logs",
+    "steps": [
+      "Step 1: Start docker compose",
+      "Step 2: Run docker compose logs api",
+      "Step 3: Verify API logs are shown",
+      "Step 4: Run docker compose logs worker",
+      "Step 5: Verify worker logs are shown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Hot reload works for frontend code changes",
+    "steps": [
+      "Step 1: Start docker compose in dev mode",
+      "Step 2: Make a text change in frontend code",
+      "Step 3: Verify the change appears in browser without restart"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Hot reload works for API code changes",
+    "steps": [
+      "Step 1: Start docker compose in dev mode",
+      "Step 2: Make a change in API code",
+      "Step 3: Verify the API reflects the change without restart"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Backup script creates PostgreSQL database dump",
+    "steps": [
+      "Step 1: Populate database with test data",
+      "Step 2: Run ./scripts/backup",
+      "Step 3: Verify backup file is created",
+      "Step 4: Verify backup file contains data"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Multiple gyms can coexist in the system independently",
+    "steps": [
+      "Step 1: Create gym 1 with Shared PIN and monthly billing",
+      "Step 2: Create gym 2 with Individual PIN and yearly billing",
+      "Step 3: Add members to each gym",
+      "Step 4: Verify members are separated by gym",
+      "Step 5: Verify access codes are independent per gym",
+      "Step 6: Verify admin 1 only sees gym 1 data",
+      "Step 7: Verify admin 2 only sees gym 2 data"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Public signup page shows terms and conditions",
+    "steps": [
+      "Step 1: Navigate to signup page",
+      "Step 2: Verify terms and conditions link or text is present",
+      "Step 3: Verify checkbox for accepting terms exists"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Member receives access instructions after successful payment",
+    "steps": [
+      "Step 1: Complete full signup and payment flow",
+      "Step 2: Verify access instructions notification is sent",
+      "Step 3: Verify instructions include the access code",
+      "Step 4: Verify instructions include gym location"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Apple Pay / Google Pay options available through Stripe checkout",
+    "steps": [
+      "Step 1: Create a gym and initiate member signup",
+      "Step 2: Verify Stripe checkout session is configured to accept card payments",
+      "Step 3: Verify payment_method_types includes card (which enables Apple/Google Pay)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin dashboard navigation works between all sections",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Click Members nav item, verify members page loads",
+      "Step 3: Click Access nav item, verify access page loads",
+      "Step 4: Click Payments nav item, verify payments page loads",
+      "Step 5: Click Settings nav item, verify settings page loads",
+      "Step 6: Verify active section is highlighted in nav"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Gym admin registration creates an admin account",
+    "steps": [
+      "Step 1: Navigate to admin registration",
+      "Step 2: Enter admin name, email, and password",
+      "Step 3: Enter gym details",
+      "Step 4: Submit form",
+      "Step 5: Verify admin account is created",
+      "Step 6: Verify admin can log in with provided credentials",
+      "Step 7: Verify admin is linked to the created gym"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Concurrent member signups do not cause PIN collisions for Individual PIN gyms",
+    "steps": [
+      "Step 1: Create gym with Individual PIN",
+      "Step 2: Simultaneously create and activate 10 members",
+      "Step 3: Verify all 10 members have unique PINs",
+      "Step 4: Verify no duplicate PINs exist"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Member cannot access admin pages",
+    "steps": [
+      "Step 1: Sign up as a regular member",
+      "Step 2: Try to navigate to /admin",
+      "Step 3: Verify access is denied or redirected to login"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API endpoints require authentication where appropriate",
+    "steps": [
+      "Step 1: Call admin-only endpoint without auth token",
+      "Step 2: Verify 401 Unauthorized response",
+      "Step 3: Call public endpoint (signup) without auth",
+      "Step 4: Verify public endpoint works without auth"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Stripe subscription ID is stored in subscription record",
+    "steps": [
+      "Step 1: Process Stripe checkout webhook",
+      "Step 2: Verify subscription record has provider set to 'stripe'",
+      "Step 3: Verify provider_subscription_id matches Stripe's subscription ID"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can view subscription details for a member",
+    "steps": [
+      "Step 1: Create active member with subscription",
+      "Step 2: Log in as admin",
+      "Step 3: Navigate to member details",
+      "Step 4: Verify subscription status, start date, and provider are shown"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Database handles gym deletion gracefully (cascade or prevent)",
+    "steps": [
+      "Step 1: Create gym with members and subscriptions",
+      "Step 2: Attempt to delete the gym",
+      "Step 3: Verify either cascade delete works or deletion is prevented with clear error"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Worker handles notification queue with multiple items",
+    "steps": [
+      "Step 1: Queue 5 notifications simultaneously",
+      "Step 2: Verify worker processes all 5",
+      "Step 3: Verify all notifications are marked as sent"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "init.sh script sets up development environment successfully",
+    "steps": [
+      "Step 1: Run ./init.sh in a clean environment",
+      "Step 2: Verify dependencies are installed",
+      "Step 3: Verify services start",
+      "Step 4: Verify application is accessible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Landing page has a clean, modern design appropriate for a SaaS product",
+    "steps": [
+      "Step 1: Navigate to http://localhost:3000",
+      "Step 2: Take screenshot",
+      "Step 3: Verify page uses consistent color scheme",
+      "Step 4: Verify typography is clean and readable",
+      "Step 5: Verify layout has proper spacing and alignment"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Landing page is mobile-responsive",
+    "steps": [
+      "Step 1: Navigate to http://localhost:3000",
+      "Step 2: Resize browser to mobile width (375px)",
+      "Step 3: Verify layout adapts to mobile screen",
+      "Step 4: Verify no horizontal scrolling",
+      "Step 5: Verify text is readable without zooming",
+      "Step 6: Verify navigation is accessible on mobile"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Signup page has a clean, trustworthy design",
+    "steps": [
+      "Step 1: Navigate to signup page",
+      "Step 2: Take screenshot",
+      "Step 3: Verify form fields are clearly labeled",
+      "Step 4: Verify price is prominently displayed",
+      "Step 5: Verify gym branding is visible",
+      "Step 6: Verify call-to-action button is prominent"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Signup page is mobile-responsive",
+    "steps": [
+      "Step 1: Navigate to signup page on mobile viewport",
+      "Step 2: Verify form is fully usable on mobile",
+      "Step 3: Verify input fields are appropriately sized for touch",
+      "Step 4: Verify submit button is easily tappable"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Admin dashboard has a professional, clean layout",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Take screenshot of dashboard",
+      "Step 3: Verify sidebar or top navigation is present",
+      "Step 4: Verify consistent spacing and alignment",
+      "Step 5: Verify color scheme is professional",
+      "Step 6: Verify data is presented in clean tables/cards"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Admin dashboard is mobile-responsive",
+    "steps": [
+      "Step 1: Log in as admin on mobile viewport",
+      "Step 2: Verify navigation collapses to hamburger menu or similar",
+      "Step 3: Verify tables are scrollable or adapt to mobile",
+      "Step 4: Verify action buttons are accessible on mobile",
+      "Step 5: Verify no content overflow"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Admin Members table is well-formatted and readable",
+    "steps": [
+      "Step 1: Navigate to admin Members section with multiple members",
+      "Step 2: Verify table has clear column headers",
+      "Step 3: Verify rows are properly aligned",
+      "Step 4: Verify status badges use color coding (green=Active, yellow=Pending, red=Cancelled)",
+      "Step 5: Verify table has appropriate row spacing"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Admin login page has professional design",
+    "steps": [
+      "Step 1: Navigate to admin login page",
+      "Step 2: Verify centered login form",
+      "Step 3: Verify brand/logo is present",
+      "Step 4: Verify form fields are properly styled",
+      "Step 5: Verify login button has appropriate styling"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Form validation errors are clearly visible and styled",
+    "steps": [
+      "Step 1: Navigate to signup form",
+      "Step 2: Submit empty form",
+      "Step 3: Verify error messages are red or otherwise visually distinct",
+      "Step 4: Verify errors appear near the relevant field",
+      "Step 5: Verify error state on input fields (red border or similar)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Buttons have consistent styling throughout the application",
+    "steps": [
+      "Step 1: Navigate through signup, login, and admin pages",
+      "Step 2: Verify primary buttons share the same style",
+      "Step 3: Verify destructive actions (cancel, suspend) use warning colors",
+      "Step 4: Verify buttons have hover states",
+      "Step 5: Verify buttons have appropriate padding and sizing"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Loading states are shown during async operations",
+    "steps": [
+      "Step 1: Submit signup form",
+      "Step 2: Verify loading indicator appears during submission",
+      "Step 3: Navigate to admin dashboard",
+      "Step 4: Verify loading state while data is being fetched"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Success and error notifications have distinct styling",
+    "steps": [
+      "Step 1: Perform a successful action (e.g., save settings)",
+      "Step 2: Verify success notification is green or uses a checkmark",
+      "Step 3: Trigger an error (e.g., invalid form submission)",
+      "Step 4: Verify error notification is red or uses a warning icon"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Admin settings page has well-organized form layout",
+    "steps": [
+      "Step 1: Navigate to admin Settings",
+      "Step 2: Verify settings are grouped logically",
+      "Step 3: Verify labels are clear",
+      "Step 4: Verify save button is prominently placed",
+      "Step 5: Verify adequate spacing between form groups"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Admin Payments section has clear data visualization",
+    "steps": [
+      "Step 1: Navigate to admin Payments section",
+      "Step 2: Verify revenue amount is prominently displayed",
+      "Step 3: Verify subscription count is easy to read",
+      "Step 4: Verify failed payments are highlighted or use warning styling"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Typography hierarchy is consistent across all pages",
+    "steps": [
+      "Step 1: Navigate through landing, signup, login, and admin pages",
+      "Step 2: Verify headings use consistent font sizes",
+      "Step 3: Verify body text uses consistent font size",
+      "Step 4: Verify font family is consistent",
+      "Step 5: Verify line heights provide good readability"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Icons and visual elements are consistent and professional",
+    "steps": [
+      "Step 1: Navigate through the application",
+      "Step 2: Verify icons use a consistent icon set",
+      "Step 3: Verify icons are appropriately sized",
+      "Step 4: Verify icons have consistent styling (stroke width, color)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Empty states have helpful messaging",
+    "steps": [
+      "Step 1: Log in as admin for a gym with no members",
+      "Step 2: Navigate to Members section",
+      "Step 3: Verify empty state message is shown (e.g., 'No members yet')",
+      "Step 4: Verify a call-to-action is present (e.g., 'Share your signup link')",
+      "Step 5: Navigate to Payments section",
+      "Step 6: Verify empty state for payments"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Navigation highlights the current active section",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Click Members nav item",
+      "Step 3: Verify Members is visually highlighted as active",
+      "Step 4: Click Payments nav item",
+      "Step 5: Verify Payments is now highlighted and Members is not"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Signup page shows membership price with proper currency formatting",
+    "steps": [
+      "Step 1: Create gym with price 299 NOK",
+      "Step 2: Navigate to signup page",
+      "Step 3: Verify price is displayed with currency symbol",
+      "Step 4: Verify billing frequency is indicated (e.g., '299 kr/month')"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Modal/confirmation dialogs have consistent styling",
+    "steps": [
+      "Step 1: Trigger a confirmation dialog (e.g., cancel membership)",
+      "Step 2: Verify dialog has a clear title",
+      "Step 3: Verify dialog has descriptive text",
+      "Step 4: Verify confirm and cancel buttons are clearly distinguishable",
+      "Step 5: Verify dialog can be dismissed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Tables are responsive and usable on smaller screens",
+    "steps": [
+      "Step 1: Navigate to admin members list on tablet viewport",
+      "Step 2: Verify table is scrollable or columns stack",
+      "Step 3: Verify key information remains visible",
+      "Step 4: Verify action buttons are still accessible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Form inputs have focus states for accessibility",
+    "steps": [
+      "Step 1: Navigate to signup form",
+      "Step 2: Tab through form fields",
+      "Step 3: Verify each field shows a visible focus ring or highlight",
+      "Step 4: Verify focus state is consistent across all inputs"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Page transitions and navigation are smooth",
+    "steps": [
+      "Step 1: Navigate between pages in admin dashboard",
+      "Step 2: Verify no jarring layout shifts",
+      "Step 3: Verify content loads without visible flicker",
+      "Step 4: Verify page title updates appropriately"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Access codes are displayed in a readable, monospaced format",
+    "steps": [
+      "Step 1: Navigate to admin Access section",
+      "Step 2: Verify access codes use monospaced or distinct font",
+      "Step 3: Verify codes are properly spaced for readability",
+      "Step 4: Verify codes have a copy-to-clipboard button or similar utility"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Admin dashboard header shows gym name and admin info",
+    "steps": [
+      "Step 1: Log in as admin for 'Nordfjord Gym'",
+      "Step 2: Verify gym name appears in dashboard header",
+      "Step 3: Verify admin name or email is shown",
+      "Step 4: Verify logout option is accessible"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Color scheme conveys trust and professionalism for a SaaS product",
+    "steps": [
+      "Step 1: Review the overall color palette across all pages",
+      "Step 2: Verify primary color is used consistently",
+      "Step 3: Verify color contrast meets WCAG AA standards",
+      "Step 4: Verify no harsh or clashing color combinations",
+      "Step 5: Verify the palette suits a fitness/gym context"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Footer is present on public pages with relevant links",
+    "steps": [
+      "Step 1: Navigate to landing page",
+      "Step 2: Scroll to bottom",
+      "Step 3: Verify footer exists",
+      "Step 4: Verify footer has consistent styling"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Card/panel components have consistent border radius and shadows",
+    "steps": [
+      "Step 1: Navigate to admin dashboard",
+      "Step 2: Verify cards/panels have consistent border radius",
+      "Step 3: Verify shadow/elevation is uniform across cards",
+      "Step 4: Verify cards have consistent padding"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Action confirmation modals prevent accidental destructive actions",
+    "steps": [
+      "Step 1: Click 'Cancel membership' for a member",
+      "Step 2: Verify confirmation modal appears before action executes",
+      "Step 3: Click cancel on modal",
+      "Step 4: Verify membership is unchanged",
+      "Step 5: Click 'Suspend member' action",
+      "Step 6: Verify confirmation modal appears"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Date and time formatting is consistent and locale-appropriate",
+    "steps": [
+      "Step 1: Navigate to admin members list",
+      "Step 2: Verify dates are formatted consistently (e.g., DD/MM/YYYY or similar)",
+      "Step 3: Verify payment dates use the same format",
+      "Step 4: Verify subscription dates use the same format"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Spacing and margins follow a consistent design system",
+    "steps": [
+      "Step 1: Navigate through all pages",
+      "Step 2: Verify section padding is consistent",
+      "Step 3: Verify margins between elements follow a pattern (e.g., 8px grid)",
+      "Step 4: Verify no cramped or overly spacious layouts"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Signup flow progress is communicated clearly to the user",
+    "steps": [
+      "Step 1: Navigate to signup page",
+      "Step 2: Verify step indicators or progress are visible",
+      "Step 3: Verify current step is highlighted",
+      "Step 4: Verify user understands what comes next"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Admin Access section clearly differentiates between access types",
+    "steps": [
+      "Step 1: View Access section for a Shared PIN gym",
+      "Step 2: Verify shared PIN display is clear and prominent",
+      "Step 3: View Access section for an Individual PIN gym",
+      "Step 4: Verify individual codes table is clear and organized"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Error pages (404, 500) have friendly styling",
+    "steps": [
+      "Step 1: Navigate to a non-existent page",
+      "Step 2: Verify a styled 404 page appears (not browser default)",
+      "Step 3: Verify the error page includes navigation back to home"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Dropdown and select inputs have consistent styling",
+    "steps": [
+      "Step 1: Navigate to gym setup form",
+      "Step 2: Verify dropdown menus (billing frequency, access type) have consistent styling",
+      "Step 3: Verify selected state is clearly visible",
+      "Step 4: Verify dropdown options are readable"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Pagination or infinite scroll works for large member lists",
+    "steps": [
+      "Step 1: Create 50+ members for a gym",
+      "Step 2: Navigate to admin Members section",
+      "Step 3: Verify not all 50 members load at once (pagination or lazy load)",
+      "Step 4: Verify pagination controls are styled and functional"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Complete gym onboarding: admin registers, configures gym, shares signup link, first member joins",
+    "steps": [
+      "Step 1: Navigate to admin registration page",
+      "Step 2: Enter admin name, email, and password",
+      "Step 3: Enter gym name 'Fjord Fitness'",
+      "Step 4: Enter gym location 'Bergen, Norway'",
+      "Step 5: Select access type 'Shared PIN'",
+      "Step 6: Enter membership price 349",
+      "Step 7: Select monthly billing",
+      "Step 8: Submit registration",
+      "Step 9: Verify admin is logged in to dashboard",
+      "Step 10: Navigate to Settings and verify gym details are correct",
+      "Step 11: Copy the public signup link from dashboard",
+      "Step 12: Open signup link in incognito/new browser",
+      "Step 13: Verify gym name and price are shown on signup page"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin manages multiple members through their full lifecycle",
+    "steps": [
+      "Step 1: Set up gym with Individual PIN access",
+      "Step 2: Sign up Member A and activate via webhook",
+      "Step 3: Sign up Member B and activate via webhook",
+      "Step 4: Sign up Member C (leave as Pending)",
+      "Step 5: Log in as admin and verify 2 Active, 1 Pending members",
+      "Step 6: Suspend Member A from admin panel",
+      "Step 7: Verify Member A status changes and PIN is revoked",
+      "Step 8: Cancel Member B from admin panel",
+      "Step 9: Verify Member B status is Cancelled and PIN is revoked",
+      "Step 10: Verify Member C is still Pending with no PIN",
+      "Step 11: Activate Member C via payment webhook",
+      "Step 12: Verify Member C now has Active status and a unique PIN"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Payment failure and recovery flow with all notifications verified",
+    "steps": [
+      "Step 1: Create gym and sign up a member",
+      "Step 2: Activate member via successful payment webhook",
+      "Step 3: Verify welcome notification sent with access code",
+      "Step 4: Simulate payment failure webhook (invoice.payment_failed)",
+      "Step 5: Verify member status changes to PastDue",
+      "Step 6: Verify payment failure notification is sent",
+      "Step 7: Verify access code is revoked or flagged",
+      "Step 8: Simulate payment retry success webhook (invoice.payment_succeeded)",
+      "Step 9: Verify member status returns to Active",
+      "Step 10: Verify new access code is generated or previous restored",
+      "Step 11: Verify payment success notification is sent",
+      "Step 12: Verify admin dashboard reflects all state changes"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Shared PIN rotation affects all active members and sends notifications",
+    "steps": [
+      "Step 1: Create gym with Shared PIN access, initial PIN 1234",
+      "Step 2: Create and activate 5 members",
+      "Step 3: Verify all 5 members have PIN 1234",
+      "Step 4: Log in as admin",
+      "Step 5: Navigate to Access section",
+      "Step 6: Verify current PIN 1234 is displayed",
+      "Step 7: Click Rotate PIN",
+      "Step 8: Verify new PIN is different from 1234",
+      "Step 9: Verify all 5 members now have the new PIN",
+      "Step 10: Verify notification was sent to all 5 members with new PIN",
+      "Step 11: Cancel one member",
+      "Step 12: Rotate PIN again",
+      "Step 13: Verify cancelled member does NOT receive notification"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Multi-gym isolation: two gyms operate independently with separate data",
+    "steps": [
+      "Step 1: Register Admin A with Gym A (Shared PIN, monthly, 299)",
+      "Step 2: Register Admin B with Gym B (Individual PIN, yearly, 2999)",
+      "Step 3: Sign up 3 members for Gym A and activate them",
+      "Step 4: Sign up 2 members for Gym B and activate them",
+      "Step 5: Log in as Admin A",
+      "Step 6: Verify only Gym A's 3 members are visible",
+      "Step 7: Verify Gym A settings show Shared PIN and 299/month",
+      "Step 8: Log out and log in as Admin B",
+      "Step 9: Verify only Gym B's 2 members are visible",
+      "Step 10: Verify Gym B settings show Individual PIN and 2999/year",
+      "Step 11: Verify Gym B members have unique individual PINs",
+      "Step 12: Verify Admin B cannot access Gym A's API endpoints"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Full end-to-end member signup with Stripe checkout and webhook processing",
+    "steps": [
+      "Step 1: Create a gym via admin registration",
+      "Step 2: Navigate to the gym's public signup page",
+      "Step 3: Verify gym name and price are displayed",
+      "Step 4: Enter member name 'Lars Hansen'",
+      "Step 5: Enter email 'lars@example.no'",
+      "Step 6: Enter phone '+4798765432'",
+      "Step 7: Accept terms and conditions",
+      "Step 8: Click proceed to payment",
+      "Step 9: Verify Stripe checkout session is created with correct amount",
+      "Step 10: Simulate checkout.session.completed webhook",
+      "Step 11: Verify member status is Active",
+      "Step 12: Verify subscription record exists with Stripe provider",
+      "Step 13: Verify access code is generated",
+      "Step 14: Verify welcome email notification contains access code"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin Payments section provides accurate financial overview with multiple payment states",
+    "steps": [
+      "Step 1: Create gym with monthly billing at 299 NOK",
+      "Step 2: Create and activate 5 members (5 active subscriptions)",
+      "Step 3: Fail payment for 1 member (4 active, 1 past due)",
+      "Step 4: Cancel 1 member (3 active, 1 past due, 1 cancelled)",
+      "Step 5: Log in as admin",
+      "Step 6: Navigate to Payments section",
+      "Step 7: Verify monthly revenue shows 3 * 299 = 897 NOK",
+      "Step 8: Verify active subscription count is 3",
+      "Step 9: Verify failed payment count is 1",
+      "Step 10: Verify cancelled count is tracked"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Webhook idempotency: same webhook event processed twice does not cause duplicate actions",
+    "steps": [
+      "Step 1: Create a pending member",
+      "Step 2: Send checkout.session.completed webhook",
+      "Step 3: Verify member is activated",
+      "Step 4: Send the same checkout.session.completed webhook again",
+      "Step 5: Verify member is still Active (not duplicated)",
+      "Step 6: Verify only one subscription record exists",
+      "Step 7: Verify only one access code exists",
+      "Step 8: Verify only one welcome notification was sent",
+      "Step 9: Verify API returns 200 (not error) for duplicate webhook",
+      "Step 10: Verify no duplicate database entries"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Database seed creates a complete demo environment for testing",
+    "steps": [
+      "Step 1: Run docker compose up with fresh database",
+      "Step 2: Run ./scripts/seed",
+      "Step 3: Verify at least one demo gym is created",
+      "Step 4: Verify demo admin account exists",
+      "Step 5: Verify demo members exist in Active, Pending, Cancelled states",
+      "Step 6: Verify demo subscriptions are linked to members",
+      "Step 7: Verify demo access codes exist for active members",
+      "Step 8: Log in with demo admin credentials",
+      "Step 9: Verify dashboard shows seeded data correctly",
+      "Step 10: Navigate to Members and verify demo members are listed"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin member detail page shows comprehensive member information",
+    "steps": [
+      "Step 1: Create gym and activate a member with full data",
+      "Step 2: Log in as admin",
+      "Step 3: Navigate to Members section",
+      "Step 4: Click on the member's name to view details",
+      "Step 5: Verify member name is displayed",
+      "Step 6: Verify email is displayed",
+      "Step 7: Verify phone number is displayed",
+      "Step 8: Verify current status (Active) is shown",
+      "Step 9: Verify access code is shown",
+      "Step 10: Verify subscription provider (Stripe) is shown",
+      "Step 11: Verify subscription start date is shown",
+      "Step 12: Verify action buttons are available (suspend, cancel, resend)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Individual PIN gym: access codes lifecycle through member states",
+    "steps": [
+      "Step 1: Create gym with Individual PIN and ACCESS_CODE_LENGTH=4",
+      "Step 2: Create and activate Member A",
+      "Step 3: Verify Member A receives a 4-digit unique PIN",
+      "Step 4: Record Member A's PIN",
+      "Step 5: Fail Member A's payment (status -> PastDue)",
+      "Step 6: Verify Member A's PIN is revoked",
+      "Step 7: Retry payment successfully (status -> Active)",
+      "Step 8: Verify Member A receives a new or restored PIN",
+      "Step 9: Cancel Member A (status -> Cancelled)",
+      "Step 10: Verify Member A's PIN is permanently revoked",
+      "Step 11: Verify no valid access code exists for Member A"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin settings update propagates to signup page and future members",
+    "steps": [
+      "Step 1: Create gym with price 299, monthly billing, Shared PIN",
+      "Step 2: Verify signup page shows 299/month",
+      "Step 3: Log in as admin and navigate to Settings",
+      "Step 4: Change price to 399",
+      "Step 5: Change billing to yearly",
+      "Step 6: Save settings",
+      "Step 7: Navigate to signup page",
+      "Step 8: Verify signup page now shows 399/year",
+      "Step 9: Change access type to Individual PIN",
+      "Step 10: Save settings",
+      "Step 11: Sign up a new member and activate",
+      "Step 12: Verify new member gets an Individual PIN (not shared)"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Notification system sends correct content for each event type",
+    "steps": [
+      "Step 1: Create gym 'Nordfjord Gym' with Shared PIN",
+      "Step 2: Sign up member and activate",
+      "Step 3: Verify welcome notification contains 'Nordfjord Gym'",
+      "Step 4: Verify welcome notification contains access code",
+      "Step 5: Trigger successful payment webhook",
+      "Step 6: Verify receipt notification mentions payment amount",
+      "Step 7: Trigger payment failure webhook",
+      "Step 8: Verify reminder notification mentions payment issue",
+      "Step 9: Trigger cancellation webhook",
+      "Step 10: Verify cancellation notification mentions access expiration",
+      "Step 11: Verify all notifications are sent to correct email address"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Admin can manage a gym with 50+ members efficiently",
+    "steps": [
+      "Step 1: Create gym and seed 50 members in various states",
+      "Step 2: Log in as admin",
+      "Step 3: Navigate to Members section",
+      "Step 4: Verify pagination or lazy loading is in effect",
+      "Step 5: Search for a specific member by name",
+      "Step 6: Verify search returns correct member",
+      "Step 7: Filter by Active status",
+      "Step 8: Verify only active members shown",
+      "Step 9: Filter by PastDue status",
+      "Step 10: Verify only past-due members shown",
+      "Step 11: Navigate to Payments section",
+      "Step 12: Verify revenue calculation handles 50 members correctly"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Complete signup page visual design review on desktop",
+    "steps": [
+      "Step 1: Navigate to signup page at desktop resolution (1440x900)",
+      "Step 2: Verify gym name is prominently displayed at top",
+      "Step 3: Verify price is clearly shown with currency",
+      "Step 4: Verify form fields have clear labels and placeholders",
+      "Step 5: Verify terms checkbox is properly styled",
+      "Step 6: Verify primary CTA button stands out",
+      "Step 7: Verify page has visual hierarchy (headings, body, labels)",
+      "Step 8: Verify whitespace is used effectively",
+      "Step 9: Verify color scheme inspires trust",
+      "Step 10: Verify footer has gym branding or GymAccess branding"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Complete admin dashboard visual design review",
+    "steps": [
+      "Step 1: Log in as admin with populated data",
+      "Step 2: Verify navigation sidebar/topbar has clear section labels",
+      "Step 3: Verify dashboard overview shows key metrics in cards",
+      "Step 4: Verify card design uses consistent shadows and borders",
+      "Step 5: Verify member count, revenue, and status summary are visible",
+      "Step 6: Navigate to Members and verify table styling",
+      "Step 7: Verify status badges use appropriate colors",
+      "Step 8: Navigate to Payments and verify financial data presentation",
+      "Step 9: Navigate to Settings and verify form organization",
+      "Step 10: Verify all pages maintain consistent header and footer"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Mobile-first responsive design verification across all key pages",
+    "steps": [
+      "Step 1: Set viewport to 375px width (iPhone SE)",
+      "Step 2: Load landing page and verify mobile layout",
+      "Step 3: Load signup page and verify form is usable on mobile",
+      "Step 4: Verify touch targets are at least 44px",
+      "Step 5: Load admin login page and verify mobile layout",
+      "Step 6: Log in and verify admin dashboard on mobile",
+      "Step 7: Verify navigation collapses to hamburger on mobile",
+      "Step 8: Navigate to Members list on mobile",
+      "Step 9: Verify table scrolls horizontally or adapts layout",
+      "Step 10: Verify no text overflows or breaks layout"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Accessibility review: keyboard navigation and screen reader basics",
+    "steps": [
+      "Step 1: Navigate to signup page using keyboard only (Tab/Shift+Tab)",
+      "Step 2: Verify all form fields are reachable via keyboard",
+      "Step 3: Verify focus order is logical",
+      "Step 4: Verify submit button is reachable via keyboard",
+      "Step 5: Navigate to admin login via keyboard",
+      "Step 6: Verify login form is fully keyboard accessible",
+      "Step 7: Verify all interactive elements have visible focus indicators",
+      "Step 8: Verify images have alt text where meaningful",
+      "Step 9: Verify form labels are associated with inputs",
+      "Step 10: Verify color is not the only means of conveying information"
+    ],
+    "passes": false
+  },
+  {
+    "category": "style",
+    "description": "Admin member actions UI review with confirmation flows",
+    "steps": [
+      "Step 1: Navigate to admin Members section",
+      "Step 2: Verify action buttons have clear icons/labels",
+      "Step 3: Click Suspend on a member",
+      "Step 4: Verify confirmation modal has clear warning text",
+      "Step 5: Verify modal has both Confirm and Cancel buttons with distinct styling",
+      "Step 6: Cancel the action and verify no changes occur",
+      "Step 7: Click Cancel Membership on a member",
+      "Step 8: Verify confirmation modal warns about permanent action",
+      "Step 9: Click Resend Access Info",
+      "Step 10: Verify success feedback is shown after resending"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "API authentication and authorization comprehensive test",
+    "steps": [
+      "Step 1: Call GET /admin/members without auth header",
+      "Step 2: Verify 401 response",
+      "Step 3: Call GET /admin/members with invalid token",
+      "Step 4: Verify 401 response",
+      "Step 5: Log in as Admin A and get auth token",
+      "Step 6: Call GET /admin/members with Admin A token",
+      "Step 7: Verify 200 response with Admin A's gym members only",
+      "Step 8: Call GET /admin/members/{gym-b-member-id} with Admin A token",
+      "Step 9: Verify 403 or 404 (Admin A cannot see Gym B members)",
+      "Step 10: Call public endpoint POST /members (signup) without auth",
+      "Step 11: Verify public endpoint works without auth"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Docker Compose development environment full setup and verification",
+    "steps": [
+      "Step 1: Verify docker-compose.yml exists",
+      "Step 2: Verify docker-compose.dev.yml exists",
+      "Step 3: Verify .env.example exists with all required variables",
+      "Step 4: Copy .env.example to .env",
+      "Step 5: Run docker compose up",
+      "Step 6: Verify frontend is accessible at localhost:3000",
+      "Step 7: Verify API is accessible at localhost:8080",
+      "Step 8: Verify PostgreSQL is running and accepting connections",
+      "Step 9: Verify database tables are created via migrations",
+      "Step 10: Run seed script and verify demo data is loaded",
+      "Step 11: Log in with demo credentials and verify dashboard works"
+    ],
+    "passes": false
+  }
+]

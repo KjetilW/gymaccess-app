@@ -8,7 +8,7 @@
       "Step 3: Verify product name 'OpenGym' or 'GymAccess' is displayed",
       "Step 4: Verify a call-to-action for gym owners is present"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -25,7 +25,7 @@
       "Step 9: Verify gym appears in the system",
       "Step 10: Verify all entered fields are persisted correctly"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -37,7 +37,7 @@
       "Step 4: Submit form",
       "Step 5: Verify gym is created with yearly billing interval"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -51,7 +51,7 @@
       "Step 6: Fill in only gym name and submit",
       "Step 7: Verify remaining validation errors still show"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -63,7 +63,7 @@
       "Step 4: Submit form",
       "Step 5: Verify gym is created with Individual PIN access type"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -75,7 +75,7 @@
       "Step 4: Submit form",
       "Step 5: Verify gym is created with Smart Lock access type"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -88,7 +88,7 @@
       "Step 5: Verify membership price is displayed",
       "Step 6: Verify a signup form is present"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -103,7 +103,7 @@
       "Step 7: Verify redirect to payment page or Stripe checkout",
       "Step 8: Verify member record is created in the system with status 'Pending'"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -115,7 +115,7 @@
       "Step 4: Try to proceed to payment",
       "Step 5: Verify an error message about terms acceptance is shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -126,7 +126,7 @@
       "Step 3: Try to submit",
       "Step 4: Verify email validation error is shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -138,7 +138,7 @@
       "Step 4: Verify validation error for email",
       "Step 5: Verify validation error for terms acceptance"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

@@ -79,7 +79,9 @@ services:
     depends_on:
       - api
     volumes:
-      - ./frontend/src:/app/src
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
 
   mailhog:
     image: mailhog/mailhog:latest

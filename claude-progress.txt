@@ -57,3 +57,55 @@
    - Public signup page (/join/[gymId])
 4. Wire up Stripe checkout for payment flow
 5. Test and mark features as passing
+
+---
+
+## Session 2 - Coding Agent (2026-03-05)
+
+### Completed
+- Fixed docker-compose.yml to mount full ./frontend:/app directory (previously only ./frontend/src:/app/src) so tailwind.config.ts hot-reloads
+- Implemented all frontend pages with "Nordic Forest Industrial" aesthetic (forest green #1B4332, sage #52B788, warm off-white #F7F5EE)
+- Fonts: Syne (display) + DM Sans (body) via next/font/google
+- Custom Tailwind color palette: forest (950-50), sage (DEFAULT/light/dark), warm (50-300)
+- bg-grid-forest utility class for subtle grid backgrounds
+
+### Frontend Pages Implemented
+- frontend/src/app/page.tsx - Full landing page (nav, hero, features grid, how-it-works, CTA)
+- frontend/src/app/layout.tsx - Root layout with Syne + DM Sans fonts
+- frontend/src/app/globals.css - Base styles and utilities
+- frontend/src/app/admin/register/page.tsx - Two-column registration form with validation
+- frontend/src/app/admin/login/page.tsx - Centered login card
+- frontend/src/app/admin/layout.tsx - Auth-checking layout with top nav (Members/Access/Payments/Settings)
+- frontend/src/app/admin/members/page.tsx - Member list table with search, status badges, actions
+- frontend/src/app/admin/payments/page.tsx - Payment stats (4 cards)
+- frontend/src/app/admin/access/page.tsx - Access codes, shared PIN with rotate button
+- frontend/src/app/admin/settings/page.tsx - Editable gym settings (price, billing, access type)
+- frontend/src/app/join/[gymId]/page.tsx - Public member signup form
+- frontend/src/app/join/[gymId]/payment/page.tsx - Payment placeholder page
+
+### Features Passing (11/166)
+- Feature 1: Landing page loads with product info and CTA ✓
+- Feature 2: Admin can register a new gym with required fields ✓
+- Feature 3: Admin can register a gym with yearly billing frequency ✓
+- Feature 4: Admin registration validates required fields ✓
+- Feature 5: Admin can select 'Individual PIN' as access type ✓
+- Feature 6: Admin can select 'Smart Lock' as access type ✓
+- Feature 7: Public signup page loads for a specific gym ✓
+- Feature 8: Member can complete signup with name, email, phone → status 'Pending' ✓
+- Feature 9: Signup page requires terms acceptance ✓
+- Feature 10: Signup page validates email format ✓
+- Feature 11: Signup page validates required fields ✓
+
+### Test Gyms Created
+- Nordfjord Gym (admin@nordfjordgym.no) - Shared PIN, monthly, NOK 299
+- Yearly Gym (admin@yearlygym.no) - Shared PIN, yearly, NOK 299
+- Individual Pin Gym (admin@individualgym.no) - Individual PIN, monthly, NOK 350
+- Smart Lock Gym (admin@smartlockgym.no) - Smart Lock, monthly, NOK 400
+
+### Next Session Should
+1. Verify features 1-11 still pass (run quick smoke test)
+2. Implement Stripe checkout integration (features 12-25 likely)
+   - Create Stripe checkout session endpoint in API
+   - Replace payment placeholder page with real Stripe redirect
+3. Implement member activation webhook flow
+4. Continue through feature_list.json in order

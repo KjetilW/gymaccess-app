@@ -194,6 +194,14 @@ export default function JoinPage() {
           </button>
         </form>
       </main>
+
+      <footer className="border-t border-warm-200 bg-white mt-8">
+        <div className="max-w-lg mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
+          <span className="font-display font-semibold text-forest-800">OpenGym</span>
+          <span>Secure payments by Stripe · Member data is encrypted</span>
+          <span>© {new Date().getFullYear()} OpenGym</span>
+        </div>
+      </footer>
     </div>
   );
 }

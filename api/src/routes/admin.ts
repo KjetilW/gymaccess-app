@@ -124,6 +124,14 @@ adminRoutes.post('/members/:memberId/cancel', async (req: AuthRequest, res) => {
       [req.params.memberId]
     );
 
+    // Queue cancellation notification
+    const member = result.rows[0];
+    await pool.query(
+      `INSERT INTO notifications (member_id, type, channel, recipient, subject, body, status)
+       VALUES ($1, 'cancellation', 'email', $2, 'Your membership has been cancelled', $3, 'pending')`,
+      [member.member_id, member.email, `Hi ${member.name}, your membership has been cancelled. Your access code has been revoked.`]
+    );
+
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Cancel member error:', err);

@@ -24,6 +24,12 @@ const STATUS_STYLES: Record<string, string> = {
   expired: 'bg-gray-100 text-gray-500',
 };
 
+interface ConfirmModal {
+  memberId: string;
+  memberName: string;
+  action: 'suspend' | 'cancel';
+}
+
 export default function MembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +37,7 @@ export default function MembersPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<ConfirmModal | null>(null);
 
   const loadMembers = useCallback(async (q = '') => {
     const token = localStorage.getItem('token');
@@ -67,6 +74,15 @@ export default function MembersPage() {
 
   const filtered = statusFilter ? members.filter(m => m.status === statusFilter) : members;
 
+  const counts = {
+    total: members.length,
+    active: members.filter(m => m.status === 'active').length,
+    pending: members.filter(m => m.status === 'pending').length,
+    past_due: members.filter(m => m.status === 'past_due').length,
+    suspended: members.filter(m => m.status === 'suspended').length,
+    cancelled: members.filter(m => m.status === 'cancelled').length,
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-6">
@@ -77,6 +93,28 @@ export default function MembersPage() {
           </p>
         </div>
       </div>
+
+      {!loading && !error && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+          {[
+            { label: 'Total', count: counts.total, color: 'bg-white border-warm-200 text-forest-900', click: '' },
+            { label: 'Active', count: counts.active, color: 'bg-forest-50 border-forest-100 text-forest-800', click: 'active' },
+            { label: 'Pending', count: counts.pending, color: 'bg-yellow-50 border-yellow-100 text-yellow-800', click: 'pending' },
+            { label: 'Past Due', count: counts.past_due, color: 'bg-orange-50 border-orange-100 text-orange-800', click: 'past_due' },
+            { label: 'Suspended', count: counts.suspended, color: 'bg-red-50 border-red-100 text-red-700', click: 'suspended' },
+            { label: 'Cancelled', count: counts.cancelled, color: 'bg-gray-50 border-gray-100 text-gray-600', click: 'cancelled' },
+          ].map(({ label, count, color, click }) => (
+            <button
+              key={label}
+              onClick={() => setStatusFilter(statusFilter === click ? '' : click)}
+              className={`rounded-xl border px-4 py-3 text-left transition-all ${color} ${statusFilter === click ? 'ring-2 ring-forest-900 ring-offset-1' : 'hover:shadow-sm'}`}
+            >
+              <div className="text-2xl font-bold font-display">{count}</div>
+              <div className="text-xs font-medium mt-0.5 opacity-75">{label}</div>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-warm-200 overflow-hidden">
         <div className="px-5 py-4 border-b border-warm-100 flex items-center gap-3">
@@ -174,7 +212,7 @@ export default function MembersPage() {
                         </button>
                         {member.status === 'active' && (
                           <button
-                            onClick={() => doAction(member.member_id, 'suspend')}
+                            onClick={() => setConfirmModal({ memberId: member.member_id, memberName: member.name, action: 'suspend' })}
                             disabled={actionLoading === member.member_id + 'suspend'}
                             className="text-xs text-orange-600 hover:text-orange-800 font-medium hover:underline disabled:opacity-50"
                           >
@@ -183,7 +221,7 @@ export default function MembersPage() {
                         )}
                         {member.status !== 'cancelled' && (
                           <button
-                            onClick={() => doAction(member.member_id, 'cancel')}
+                            onClick={() => setConfirmModal({ memberId: member.member_id, memberName: member.name, action: 'cancel' })}
                             disabled={actionLoading === member.member_id + 'cancel'}
                             className="text-xs text-red-500 hover:text-red-700 font-medium hover:underline disabled:opacity-50"
                           >
@@ -199,6 +237,44 @@ export default function MembersPage() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      {confirmModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+            <h3 className="font-display font-bold text-xl text-forest-900 mb-2">
+              {confirmModal.action === 'suspend' ? 'Suspend member?' : 'Cancel membership?'}
+            </h3>
+            <p className="text-sm text-gray-600 mb-6">
+              {confirmModal.action === 'suspend'
+                ? `This will suspend ${confirmModal.memberName}'s access. They can be reactivated later.`
+                : `This will cancel ${confirmModal.memberName}'s membership and revoke their access code. This action cannot be easily undone.`}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmModal(null)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-warm-200 text-sm font-medium text-forest-800 hover:bg-warm-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const { memberId, action } = confirmModal;
+                  setConfirmModal(null);
+                  await doAction(memberId, action);
+                }}
+                className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-colors ${
+                  confirmModal.action === 'suspend'
+                    ? 'bg-orange-500 hover:bg-orange-600'
+                    : 'bg-red-500 hover:bg-red-600'
+                }`}
+              >
+                {confirmModal.action === 'suspend' ? 'Suspend' : 'Cancel membership'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

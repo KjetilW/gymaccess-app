@@ -26,7 +26,7 @@ export default function Home() {
           Built for community gyms
         </div>
 
-        <h1 className="font-display font-extrabold text-5xl lg:text-7xl text-forest-900 leading-[1.05] mb-6 tracking-tight">
+        <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-7xl text-forest-900 leading-[1.05] mb-6 tracking-tight">
           Automate your<br />
           <span className="text-sage-dark">gym membership</span>
         </h1>
@@ -135,6 +135,23 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="border-t border-warm-200 bg-white">
+        <div className="max-w-6xl mx-auto px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-display font-bold text-lg text-forest-900">OpenGym</span>
+            <span className="text-warm-300">·</span>
+            <span className="text-sm text-forest-600">Built for community gyms</span>
+          </div>
+          <nav className="flex items-center gap-6 text-sm text-forest-600">
+            <Link href="/admin/register" className="hover:text-forest-900 transition-colors">Register</Link>
+            <Link href="/admin/login" className="hover:text-forest-900 transition-colors">Sign in</Link>
+            <a href="mailto:support@opengym.app" className="hover:text-forest-900 transition-colors">Support</a>
+          </nav>
+          <p className="text-xs text-gray-400">© {new Date().getFullYear()} OpenGym. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 }

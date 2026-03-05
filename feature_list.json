@@ -247,7 +247,7 @@
       "Step 6: Verify member 2 receives same PIN '4821'",
       "Step 7: Verify both members see the same code"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -284,7 +284,7 @@
       "Step 3: Verify the access code valid_to is set",
       "Step 4: Verify the member no longer has a valid access code"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -351,7 +351,7 @@
       "Step 2: Verify cancellation notification is queued/sent",
       "Step 3: Verify notification mentions access expiration"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -361,7 +361,7 @@
       "Step 2: Verify access code notification is queued/sent",
       "Step 3: Verify notification contains the access code"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -770,7 +770,7 @@
       "Step 4: Verify test members exist in various states",
       "Step 5: Verify admin login works with seed credentials"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -781,7 +781,7 @@
       "Step 3: Verify all tables are created",
       "Step 4: Verify migrations are idempotent (run again without error)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1006,7 +1006,7 @@
       "Step 5: Verify Pending count shows 2",
       "Step 6: Verify total member count shows 9"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1018,7 +1018,7 @@
       "Step 4: Verify only gym 1's 3 members are visible",
       "Step 5: Verify gym 2's members are not accessible"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1069,7 +1069,7 @@
       "Step 2: Query the database for the admin record",
       "Step 3: Verify password is hashed, not stored in plain text"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1090,7 +1090,7 @@
       "Step 4: Run docker compose logs worker",
       "Step 5: Verify worker logs are shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1100,7 +1100,7 @@
       "Step 2: Make a text change in frontend code",
       "Step 3: Verify the change appears in browser without restart"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1110,7 +1110,7 @@
       "Step 2: Make a change in API code",
       "Step 3: Verify the API reflects the change without restart"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1121,7 +1121,7 @@
       "Step 3: Verify backup file is created",
       "Step 4: Verify backup file contains data"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1135,7 +1135,7 @@
       "Step 6: Verify admin 1 only sees gym 1 data",
       "Step 7: Verify admin 2 only sees gym 2 data"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1193,7 +1193,7 @@
       "Step 6: Verify admin can log in with provided credentials",
       "Step 7: Verify admin is linked to the created gym"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1214,7 +1214,7 @@
       "Step 2: Try to navigate to /admin",
       "Step 3: Verify access is denied or redirected to login"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1225,7 +1225,7 @@
       "Step 3: Call public endpoint (signup) without auth",
       "Step 4: Verify public endpoint works without auth"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1246,7 +1246,7 @@
       "Step 3: Navigate to member details",
       "Step 4: Verify subscription status, start date, and provider are shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1266,7 +1266,7 @@
       "Step 2: Verify worker processes all 5",
       "Step 3: Verify all notifications are marked as sent"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1277,7 +1277,7 @@
       "Step 3: Verify services start",
       "Step 4: Verify application is accessible"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1289,7 +1289,7 @@
       "Step 4: Verify typography is clean and readable",
       "Step 5: Verify layout has proper spacing and alignment"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1302,7 +1302,7 @@
       "Step 5: Verify text is readable without zooming",
       "Step 6: Verify navigation is accessible on mobile"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1315,7 +1315,7 @@
       "Step 5: Verify gym branding is visible",
       "Step 6: Verify call-to-action button is prominent"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1326,7 +1326,7 @@
       "Step 3: Verify input fields are appropriately sized for touch",
       "Step 4: Verify submit button is easily tappable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1339,7 +1339,7 @@
       "Step 5: Verify color scheme is professional",
       "Step 6: Verify data is presented in clean tables/cards"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1351,7 +1351,7 @@
       "Step 4: Verify action buttons are accessible on mobile",
       "Step 5: Verify no content overflow"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1363,7 +1363,7 @@
       "Step 4: Verify status badges use color coding (green=Active, yellow=Pending, red=Cancelled)",
       "Step 5: Verify table has appropriate row spacing"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1375,7 +1375,7 @@
       "Step 4: Verify form fields are properly styled",
       "Step 5: Verify login button has appropriate styling"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1387,7 +1387,7 @@
       "Step 4: Verify errors appear near the relevant field",
       "Step 5: Verify error state on input fields (red border or similar)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1399,7 +1399,7 @@
       "Step 4: Verify buttons have hover states",
       "Step 5: Verify buttons have appropriate padding and sizing"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1410,7 +1410,7 @@
       "Step 3: Navigate to admin dashboard",
       "Step 4: Verify loading state while data is being fetched"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1421,7 +1421,7 @@
       "Step 3: Trigger an error (e.g., invalid form submission)",
       "Step 4: Verify error notification is red or uses a warning icon"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1433,7 +1433,7 @@
       "Step 4: Verify save button is prominently placed",
       "Step 5: Verify adequate spacing between form groups"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1444,7 +1444,7 @@
       "Step 3: Verify subscription count is easy to read",
       "Step 4: Verify failed payments are highlighted or use warning styling"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1456,7 +1456,7 @@
       "Step 4: Verify font family is consistent",
       "Step 5: Verify line heights provide good readability"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1467,7 +1467,7 @@
       "Step 3: Verify icons are appropriately sized",
       "Step 4: Verify icons have consistent styling (stroke width, color)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1480,7 +1480,7 @@
       "Step 5: Navigate to Payments section",
       "Step 6: Verify empty state for payments"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1492,7 +1492,7 @@
       "Step 4: Click Payments nav item",
       "Step 5: Verify Payments is now highlighted and Members is not"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1503,7 +1503,7 @@
       "Step 3: Verify price is displayed with currency symbol",
       "Step 4: Verify billing frequency is indicated (e.g., '299 kr/month')"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1515,7 +1515,7 @@
       "Step 4: Verify confirm and cancel buttons are clearly distinguishable",
       "Step 5: Verify dialog can be dismissed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1526,7 +1526,7 @@
       "Step 3: Verify key information remains visible",
       "Step 4: Verify action buttons are still accessible"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1537,7 +1537,7 @@
       "Step 3: Verify each field shows a visible focus ring or highlight",
       "Step 4: Verify focus state is consistent across all inputs"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1548,7 +1548,7 @@
       "Step 3: Verify content loads without visible flicker",
       "Step 4: Verify page title updates appropriately"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1559,7 +1559,7 @@
       "Step 3: Verify codes are properly spaced for readability",
       "Step 4: Verify codes have a copy-to-clipboard button or similar utility"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1570,7 +1570,7 @@
       "Step 3: Verify admin name or email is shown",
       "Step 4: Verify logout option is accessible"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1582,7 +1582,7 @@
       "Step 4: Verify no harsh or clashing color combinations",
       "Step 5: Verify the palette suits a fitness/gym context"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1593,7 +1593,7 @@
       "Step 3: Verify footer exists",
       "Step 4: Verify footer has consistent styling"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1604,7 +1604,7 @@
       "Step 3: Verify shadow/elevation is uniform across cards",
       "Step 4: Verify cards have consistent padding"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1617,7 +1617,7 @@
       "Step 5: Click 'Suspend member' action",
       "Step 6: Verify confirmation modal appears"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1628,7 +1628,7 @@
       "Step 3: Verify payment dates use the same format",
       "Step 4: Verify subscription dates use the same format"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1639,7 +1639,7 @@
       "Step 3: Verify margins between elements follow a pattern (e.g., 8px grid)",
       "Step 4: Verify no cramped or overly spacious layouts"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1650,7 +1650,7 @@
       "Step 3: Verify current step is highlighted",
       "Step 4: Verify user understands what comes next"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1661,7 +1661,7 @@
       "Step 3: View Access section for an Individual PIN gym",
       "Step 4: Verify individual codes table is clear and organized"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1671,7 +1671,7 @@
       "Step 2: Verify a styled 404 page appears (not browser default)",
       "Step 3: Verify the error page includes navigation back to home"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1682,7 +1682,7 @@
       "Step 3: Verify selected state is clearly visible",
       "Step 4: Verify dropdown options are readable"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1732,7 +1732,7 @@
       "Step 11: Activate Member C via payment webhook",
       "Step 12: Verify Member C now has Active status and a unique PIN"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1771,7 +1771,7 @@
       "Step 12: Rotate PIN again",
       "Step 13: Verify cancelled member does NOT receive notification"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1790,7 +1790,7 @@
       "Step 11: Verify Gym B members have unique individual PINs",
       "Step 12: Verify Admin B cannot access Gym A's API endpoints"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1862,7 +1862,7 @@
       "Step 9: Verify dashboard shows seeded data correctly",
       "Step 10: Navigate to Members and verify demo members are listed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1881,7 +1881,7 @@
       "Step 11: Verify subscription start date is shown",
       "Step 12: Verify action buttons are available (suspend, cancel, resend)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1918,7 +1918,7 @@
       "Step 11: Sign up a new member and activate",
       "Step 12: Verify new member gets an Individual PIN (not shared)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1972,7 +1972,7 @@
       "Step 9: Verify color scheme inspires trust",
       "Step 10: Verify footer has gym branding or GymAccess branding"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -1989,7 +1989,7 @@
       "Step 9: Navigate to Settings and verify form organization",
       "Step 10: Verify all pages maintain consistent header and footer"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -2006,7 +2006,7 @@
       "Step 9: Verify table scrolls horizontally or adapts layout",
       "Step 10: Verify no text overflows or breaks layout"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -2023,7 +2023,7 @@
       "Step 9: Verify form labels are associated with inputs",
       "Step 10: Verify color is not the only means of conveying information"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",
@@ -2040,7 +2040,7 @@
       "Step 9: Click Resend Access Info",
       "Step 10: Verify success feedback is shown after resending"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2058,7 +2058,7 @@
       "Step 10: Call public endpoint POST /members (signup) without auth",
       "Step 11: Verify public endpoint works without auth"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2076,6 +2076,6 @@
       "Step 10: Run seed script and verify demo data is loaded",
       "Step 11: Log in with demo credentials and verify dashboard works"
     ],
-    "passes": false
+    "passes": true
   }
 ]

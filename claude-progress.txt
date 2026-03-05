@@ -118,3 +118,34 @@
 4. Work on notification emails (features 26-30)
 5. Admin member detail page (feature 70)
 6. Consider style/design features (110-145) - many may already pass
+
+---
+
+## Session 4 - Coding Agent (2026-03-05)
+
+### Completed (57/166 passing)
+
+#### Signup Page Features Verified (features 72, 73, 74, 96)
+- Signup page shows gym location (already implemented, verified in browser)
+- Signup page shows billing frequency / price (already implemented, verified)
+- Signup page for invalid gym ID shows friendly error (already implemented)
+- Public signup page shows terms and conditions checkbox (already implemented)
+
+#### Admin Members Status Filter (feature 76)
+- Added status dropdown (All statuses / Active / Pending / Past Due / Suspended / Cancelled / Expired)
+- Client-side filtering of members list
+- Shows filtered count "X of Y total" when filter active
+
+#### Admin Member Detail Page (feature 69)
+- Created /admin/members/[memberId]/page.tsx
+- Shows: name, status badge, email, phone, access code (monospace)
+- Shows subscription: status, provider, start date, Stripe ID
+- Shows action buttons: Resend Access Info, Suspend, Cancel
+- Member names in list are now clickable links to detail page
+
+### Next Session Should
+1. Implement Stripe checkout integration (features 12-19) - needs real Stripe test keys
+2. Style/design features - many may pass with current design (test #110-145)
+3. Admin dashboard member count cards by status (feature 77-ish)
+4. Notification emails (features 26-30) - worker already set up
+5. Admin registration flow (feature 49)

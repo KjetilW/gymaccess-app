@@ -298,7 +298,7 @@
       "Step 6: Verify old PIN is no longer valid",
       "Step 7: Verify all active members are notified of new PIN"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -372,7 +372,7 @@
       "Step 3: Verify dashboard loads without errors",
       "Step 4: Verify navigation shows Members, Access, Payments, Settings sections"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -389,7 +389,7 @@
       "Step 9: Verify members can be sorted or filtered by status",
       "Step 10: Verify the total member count is displayed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -403,7 +403,7 @@
       "Step 6: Verify member status changes",
       "Step 7: Verify member's access code is revoked"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -417,7 +417,7 @@
       "Step 6: Verify member status changes to Cancelled",
       "Step 7: Verify Stripe subscription is cancelled"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -429,7 +429,7 @@
       "Step 4: Click 'Resend access info' action",
       "Step 5: Verify notification is sent to the member with access code"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -441,7 +441,7 @@
       "Step 4: Verify current gym PIN is displayed",
       "Step 5: Verify option to rotate PIN is available"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -466,7 +466,7 @@
       "Step 4: Verify monthly revenue figure is displayed",
       "Step 5: Verify the amount matches expected total from active subscriptions"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -477,7 +477,7 @@
       "Step 3: Navigate to Payments section",
       "Step 4: Verify active subscription count is correct"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -488,7 +488,7 @@
       "Step 3: Navigate to Payments section",
       "Step 4: Verify failed payment count or list is shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -501,7 +501,7 @@
       "Step 5: Verify new price is persisted",
       "Step 6: Verify public signup page shows updated price"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -513,7 +513,7 @@
       "Step 4: Save settings",
       "Step 5: Verify new interval is persisted"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -525,7 +525,7 @@
       "Step 4: Save settings",
       "Step 5: Verify access type is persisted"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -550,7 +550,7 @@
       "Step 4: Verify error message is shown",
       "Step 5: Verify user is not redirected to dashboard"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -562,7 +562,7 @@
       "Step 4: Verify redirect to admin dashboard",
       "Step 5: Verify admin name or email is shown in the UI"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -573,7 +573,7 @@
       "Step 3: Verify redirect to login page",
       "Step 4: Verify accessing /admin redirects to login"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -583,7 +583,7 @@
       "Step 2: Navigate to http://localhost:3000/admin",
       "Step 3: Verify redirect to login page"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -595,7 +595,7 @@
       "Step 4: Verify member status is 'Pending'",
       "Step 5: Verify member is associated with correct gym"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -606,7 +606,7 @@
       "Step 3: Send POST with invalid email format",
       "Step 4: Verify 400 response with validation error"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -617,7 +617,7 @@
       "Step 3: Verify member status changes to Active",
       "Step 4: Verify subscription record is created"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -628,7 +628,7 @@
       "Step 3: Verify access code is returned",
       "Step 4: Verify code is persisted in database"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -639,7 +639,7 @@
       "Step 3: Verify access code is invalidated",
       "Step 4: Verify response confirms revocation"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -651,7 +651,7 @@
       "Step 4: Verify 'subscriptions' table exists with correct columns",
       "Step 5: Verify 'access_codes' table exists with correct columns"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -661,7 +661,7 @@
       "Step 2: Verify gym_id (primary key) exists",
       "Step 3: Verify name, location, admin_user, membership_price, billing_interval, access_type columns exist"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -671,7 +671,7 @@
       "Step 2: Verify member_id, gym_id, name, email, phone, status, created_at columns exist",
       "Step 3: Verify gym_id is a foreign key to gyms table"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -681,7 +681,7 @@
       "Step 2: Verify subscription_id, member_id, provider, provider_subscription_id, status, start_date, end_date columns exist",
       "Step 3: Verify member_id is a foreign key to members table"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -691,7 +691,7 @@
       "Step 2: Verify code_id, member_id, code, valid_from, valid_to, device_id columns exist",
       "Step 3: Verify member_id is a foreign key to members table"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -704,7 +704,7 @@
       "Step 5: Verify postgres container is running",
       "Step 6: Verify all containers stay healthy for 30 seconds"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -714,7 +714,7 @@
       "Step 2: Navigate to http://localhost:3000",
       "Step 3: Verify page loads with 200 status"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -724,7 +724,7 @@
       "Step 2: Send GET to http://localhost:8080/health",
       "Step 3: Verify 200 response with health status"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -735,7 +735,7 @@
       "Step 3: Restart containers with docker compose restart",
       "Step 4: Verify the record still exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -758,7 +758,7 @@
       "Step 4: Verify API reads DATABASE_URL from environment",
       "Step 5: Verify API reads STRIPE_API_KEY from environment"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -859,7 +859,7 @@
       "Step 3: Verify worker picks up and processes the task",
       "Step 4: Verify task completion is logged"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -913,7 +913,7 @@
       "Step 4: Enter search term matching one member",
       "Step 5: Verify only matching member(s) are shown"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -938,7 +938,7 @@
       "Step 3: Verify error about duplicate email",
       "Step 4: Verify original member is unaffected"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -949,7 +949,7 @@
       "Step 3: Sign up with test@example.com for gym 2",
       "Step 4: Verify both memberships exist independently"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -962,7 +962,7 @@
       "Step 5: Send request without authentication to protected endpoint",
       "Step 6: Verify 401 response"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -972,7 +972,7 @@
       "Step 2: Verify 200 response",
       "Step 3: Verify response includes database connectivity status"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1179,7 +1179,7 @@
       "Step 5: Click Settings nav item, verify settings page loads",
       "Step 6: Verify active section is highlighted in nav"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

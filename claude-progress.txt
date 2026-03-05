@@ -40,72 +40,81 @@
 - scripts/seed - loads demo gym, admin, and members
 - scripts/backup - PostgreSQL backup with 7-day retention
 
-### Not Yet Started
-- Frontend page implementations (signup form, admin dashboard, login, etc.)
-- Stripe checkout integration
-- Smart lock integration
-- Notification template customization
-- Full browser-based E2E testing of features
-- All 166 features in feature_list.json remain passes: false
-
-### Next Session Should
-1. Start docker compose and verify all services boot
-2. Run migrations and seed data
-3. Begin implementing frontend pages starting with:
-   - Admin login page
-   - Admin dashboard
-   - Public signup page (/join/[gymId])
-4. Wire up Stripe checkout for payment flow
-5. Test and mark features as passing
-
 ---
 
 ## Session 2 - Coding Agent (2026-03-05)
 
 ### Completed
-- Fixed docker-compose.yml to mount full ./frontend:/app directory (previously only ./frontend/src:/app/src) so tailwind.config.ts hot-reloads
-- Implemented all frontend pages with "Nordic Forest Industrial" aesthetic (forest green #1B4332, sage #52B788, warm off-white #F7F5EE)
+- Fixed docker-compose.yml to mount full ./frontend:/app directory
+- Implemented all frontend pages with "Nordic Forest Industrial" aesthetic
 - Fonts: Syne (display) + DM Sans (body) via next/font/google
-- Custom Tailwind color palette: forest (950-50), sage (DEFAULT/light/dark), warm (50-300)
-- bg-grid-forest utility class for subtle grid backgrounds
-
-### Frontend Pages Implemented
-- frontend/src/app/page.tsx - Full landing page (nav, hero, features grid, how-it-works, CTA)
-- frontend/src/app/layout.tsx - Root layout with Syne + DM Sans fonts
-- frontend/src/app/globals.css - Base styles and utilities
-- frontend/src/app/admin/register/page.tsx - Two-column registration form with validation
-- frontend/src/app/admin/login/page.tsx - Centered login card
-- frontend/src/app/admin/layout.tsx - Auth-checking layout with top nav (Members/Access/Payments/Settings)
-- frontend/src/app/admin/members/page.tsx - Member list table with search, status badges, actions
-- frontend/src/app/admin/payments/page.tsx - Payment stats (4 cards)
-- frontend/src/app/admin/access/page.tsx - Access codes, shared PIN with rotate button
-- frontend/src/app/admin/settings/page.tsx - Editable gym settings (price, billing, access type)
-- frontend/src/app/join/[gymId]/page.tsx - Public member signup form
-- frontend/src/app/join/[gymId]/payment/page.tsx - Payment placeholder page
+- Custom Tailwind color palette: forest (950-50), sage, warm
 
 ### Features Passing (11/166)
-- Feature 1: Landing page loads with product info and CTA ✓
-- Feature 2: Admin can register a new gym with required fields ✓
-- Feature 3: Admin can register a gym with yearly billing frequency ✓
-- Feature 4: Admin registration validates required fields ✓
-- Feature 5: Admin can select 'Individual PIN' as access type ✓
-- Feature 6: Admin can select 'Smart Lock' as access type ✓
-- Feature 7: Public signup page loads for a specific gym ✓
-- Feature 8: Member can complete signup with name, email, phone → status 'Pending' ✓
-- Feature 9: Signup page requires terms acceptance ✓
-- Feature 10: Signup page validates email format ✓
-- Feature 11: Signup page validates required fields ✓
+- Features 1-11: Landing page, admin registration, public signup form/validation
 
-### Test Gyms Created
-- Nordfjord Gym (admin@nordfjordgym.no) - Shared PIN, monthly, NOK 299
-- Yearly Gym (admin@yearlygym.no) - Shared PIN, yearly, NOK 299
-- Individual Pin Gym (admin@individualgym.no) - Individual PIN, monthly, NOK 350
-- Smart Lock Gym (admin@smartlockgym.no) - Smart Lock, monthly, NOK 400
+---
+
+## Session 3 - Coding Agent (2026-03-05)
+
+### Completed (50/166 passing)
+
+#### Infrastructure Verified (features 54-62, 64, 81)
+- All 6 database tables exist with correct schemas
+- Docker Compose starts all services (postgres, redis, api, worker, frontend, mailhog)
+- Frontend accessible at localhost:3000
+- API accessible at localhost:8080, health check returns status
+- PostgreSQL accessible and data persists
+- Environment variables loaded from .env
+
+#### Admin Authentication Verified (features 45-48)
+- Invalid login shows "Invalid credentials" error
+- Valid login grants access to dashboard (redirects to /admin/members)
+- Logout clears session and redirects to /admin/login
+- Unauthenticated access to /admin/* redirects to login
+
+#### API Endpoints Verified (features 49-53, 78-80)
+- POST /members creates member records
+- POST /members validates required fields (returns 400)
+- POST /subscriptions/activate activates membership
+- POST /access/generate creates access code
+- POST /access/revoke revokes member access code
+- Duplicate email in same gym returns 409
+- Same email in different gym is allowed
+
+#### Admin Dashboard Verified (features 31-35, 37-43, 76)
+- Members list shows all members with name/email/phone, status badge, access code, join date
+- Search by name/email works
+- Suspend member changes status to "Suspended" and removes access code
+- Cancel member changes status to "Cancelled"
+- Resend access info queues email notification
+- Access page shows current shared PIN prominently with Rotate button
+- Rotate PIN changes PIN for all active members, sends notifications
+- Payments page shows monthly revenue, active subscriptions, failed payments
+- Settings: change price, billing interval (Monthly/Yearly), access type (radio buttons)
+- Settings saved confirmation shows "✓ Settings saved"
+- Navigation between Members/Access/Payments/Settings all works
+
+#### Worker Verified (feature 71)
+- Worker processes notifications from DB queue
+- Emails delivered to MailHog (confirmed: access_info, pin_rotated emails received)
+
+### Current Status: 50/166 tests passing
+
+### Test Data (Nordfjord Gym - admin@nordfjordgym.no / password123)
+- Anna Pedersen (anna@test.no) - Active, code 1937
+- Test User (apitest@test.com) - Suspended
+- Lars Eriksen (lars@test.no) - Cancelled
 
 ### Next Session Should
-1. Verify features 1-11 still pass (run quick smoke test)
-2. Implement Stripe checkout integration (features 12-25 likely)
-   - Create Stripe checkout session endpoint in API
-   - Replace payment placeholder page with real Stripe redirect
-3. Implement member activation webhook flow
-4. Continue through feature_list.json in order
+1. Verify features 1-11 still pass (quick smoke test)
+2. Implement Stripe checkout integration (features 12-19)
+   - Need real Stripe test API keys in .env
+   - Create POST /subscriptions/checkout endpoint
+   - Update payment page to redirect to Stripe
+3. Test additional admin features:
+   - Feature 37: Admin Access shows individual codes for Individual PIN gyms (need to log in as individual PIN gym admin)
+   - Feature 77: Admin can filter members by status (UI filter dropdown not implemented)
+4. Work on notification emails (features 26-30)
+5. Admin member detail page (feature 70)
+6. Consider style/design features (110-145) - many may already pass

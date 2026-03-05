@@ -15,6 +15,13 @@ interface Member {
   created_at: string;
 }
 
+interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
 const STATUS_STYLES: Record<string, string> = {
   active: 'bg-forest-100 text-forest-800',
   pending: 'bg-yellow-100 text-yellow-800',
@@ -32,22 +39,30 @@ interface ConfirmModal {
 
 export default function MembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState<ConfirmModal | null>(null);
 
-  const loadMembers = useCallback(async (q = '') => {
+  const loadMembers = useCallback(async (q = '', status = '', page = 1) => {
     const token = localStorage.getItem('token');
     try {
-      const params = q ? `?search=${encodeURIComponent(q)}` : '';
-      const res = await fetch(`${API_URL}/admin/members${params}`, {
+      const params = new URLSearchParams();
+      if (q) params.set('search', q);
+      if (status) params.set('status', status);
+      params.set('page', String(page));
+      params.set('limit', '50');
+      const res = await fetch(`${API_URL}/admin/members?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed');
-      setMembers(await res.json());
+      const data = await res.json();
+      setMembers(data.members);
+      setPagination(data.pagination);
       setError('');
     } catch {
       setError('Failed to load members');
@@ -56,7 +71,14 @@ export default function MembersPage() {
     }
   }, []);
 
-  useEffect(() => { loadMembers(); }, [loadMembers]);
+  useEffect(() => { loadMembers(search, statusFilter, currentPage); }, [loadMembers, search, statusFilter, currentPage]);
+
+  const handleStatusFilter = (status: string) => {
+    const next = statusFilter === status ? '' : status;
+    setStatusFilter(next);
+    setCurrentPage(1);
+    loadMembers(search, next, 1);
+  };
 
   const doAction = async (memberId: string, action: 'suspend' | 'cancel' | 'resend') => {
     const token = localStorage.getItem('token');
@@ -66,16 +88,15 @@ export default function MembersPage() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      await loadMembers(search);
+      await loadMembers(search, statusFilter, currentPage);
     } finally {
       setActionLoading(null);
     }
   };
 
-  const filtered = statusFilter ? members.filter(m => m.status === statusFilter) : members;
-
+  const totalCount = pagination?.total ?? members.length;
   const counts = {
-    total: members.length,
+    total: totalCount,
     active: members.filter(m => m.status === 'active').length,
     pending: members.filter(m => m.status === 'pending').length,
     past_due: members.filter(m => m.status === 'past_due').length,
@@ -89,7 +110,7 @@ export default function MembersPage() {
         <div>
           <h1 className="font-display font-bold text-2xl text-forest-900">Members</h1>
           <p className="text-gray-500 text-sm mt-0.5">
-            {statusFilter ? `${filtered.length} of ${members.length} total` : `${members.length} total`}
+            {pagination ? `${pagination.total} total` : `${members.length} total`}
           </p>
         </div>
       </div>
@@ -97,7 +118,7 @@ export default function MembersPage() {
       {!loading && !error && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           {[
-            { label: 'Total', count: counts.total, color: 'bg-white border-warm-200 text-forest-900', click: '' },
+            { label: 'Total', count: pagination?.total ?? counts.total, color: 'bg-white border-warm-200 text-forest-900', click: '' },
             { label: 'Active', count: counts.active, color: 'bg-forest-50 border-forest-100 text-forest-800', click: 'active' },
             { label: 'Pending', count: counts.pending, color: 'bg-yellow-50 border-yellow-100 text-yellow-800', click: 'pending' },
             { label: 'Past Due', count: counts.past_due, color: 'bg-orange-50 border-orange-100 text-orange-800', click: 'past_due' },
@@ -106,7 +127,7 @@ export default function MembersPage() {
           ].map(({ label, count, color, click }) => (
             <button
               key={label}
-              onClick={() => setStatusFilter(statusFilter === click ? '' : click)}
+              onClick={() => handleStatusFilter(click)}
               className={`rounded-xl border px-4 py-3 text-left transition-all ${color} ${statusFilter === click ? 'ring-2 ring-forest-900 ring-offset-1' : 'hover:shadow-sm'}`}
             >
               <div className="text-2xl font-bold font-display">{count}</div>
@@ -127,13 +148,18 @@ export default function MembersPage() {
               placeholder="Search by name or email…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && loadMembers(search)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  setCurrentPage(1);
+                  loadMembers(search, statusFilter, 1);
+                }
+              }}
               className="w-full pl-9 pr-4 py-2 rounded-xl border border-warm-200 text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent"
             />
           </div>
           <select
             value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
+            onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); loadMembers(search, e.target.value, 1); }}
             className="px-3 py-2 rounded-xl border border-warm-200 text-sm text-forest-900 focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent bg-white"
           >
             <option value="">All statuses</option>
@@ -145,7 +171,7 @@ export default function MembersPage() {
             <option value="expired">Expired</option>
           </select>
           <button
-            onClick={() => loadMembers(search)}
+            onClick={() => { setCurrentPage(1); loadMembers(search, statusFilter, 1); }}
             className="px-4 py-2 text-sm font-medium bg-forest-900 text-white rounded-xl hover:bg-forest-800 transition-colors"
           >
             Search
@@ -158,7 +184,7 @@ export default function MembersPage() {
           </div>
         ) : error ? (
           <div className="p-12 text-center text-red-500">{error}</div>
-        ) : filtered.length === 0 ? (
+        ) : members.length === 0 ? (
           <div className="p-16 text-center">
             <div className="w-16 h-16 bg-forest-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">👥</div>
             <h3 className="font-display font-bold text-xl text-forest-900 mb-2">
@@ -181,7 +207,7 @@ export default function MembersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-warm-50">
-                {filtered.map(member => (
+                {members.map(member => (
                   <tr key={member.member_id} className="hover:bg-warm-50 transition-colors">
                     <td className="px-5 py-4">
                       <Link href={`/admin/members/${member.member_id}`} className="font-medium text-forest-900 text-sm hover:text-forest-700 hover:underline">{member.name}</Link>
@@ -234,6 +260,44 @@ export default function MembersPage() {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination */}
+            {pagination && pagination.pages > 1 && (
+              <div className="px-5 py-4 border-t border-warm-100 flex items-center justify-between">
+                <p className="text-sm text-gray-500">
+                  Showing {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { const p = currentPage - 1; setCurrentPage(p); loadMembers(search, statusFilter, p); }}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-warm-200 text-forest-800 hover:bg-warm-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ← Prev
+                  </button>
+                  {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                    const start = Math.max(1, Math.min(currentPage - 2, pagination.pages - 4));
+                    const page = start + i;
+                    return page <= pagination.pages ? (
+                      <button
+                        key={page}
+                        onClick={() => { setCurrentPage(page); loadMembers(search, statusFilter, page); }}
+                        className={`w-8 h-8 text-sm rounded-lg transition-colors ${page === currentPage ? 'bg-forest-900 text-white' : 'border border-warm-200 text-forest-800 hover:bg-warm-50'}`}
+                      >
+                        {page}
+                      </button>
+                    ) : null;
+                  })}
+                  <button
+                    onClick={() => { const p = currentPage + 1; setCurrentPage(p); loadMembers(search, statusFilter, p); }}
+                    disabled={currentPage === pagination.pages}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-warm-200 text-forest-800 hover:bg-warm-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

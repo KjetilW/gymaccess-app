@@ -260,7 +260,7 @@
       "Step 5: Verify member 2 receives a different PIN than member 1",
       "Step 6: Verify both PINs are of the configured length"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -309,7 +309,7 @@
       "Step 3: Create and activate a member",
       "Step 4: Verify generated PIN has exactly 6 digits"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -871,7 +871,7 @@
       "Step 4: Verify worker retries after failure",
       "Step 5: Verify retry is logged"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1078,7 +1078,7 @@
       "Step 1: Send 100 rapid requests to the same endpoint",
       "Step 2: Verify rate limit response (429) is returned after threshold"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1693,7 +1693,7 @@
       "Step 3: Verify not all 50 members load at once (pagination or lazy load)",
       "Step 4: Verify pagination controls are styled and functional"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1955,7 +1955,7 @@
       "Step 11: Navigate to Payments section",
       "Step 12: Verify revenue calculation handles 50 members correctly"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "style",

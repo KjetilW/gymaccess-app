@@ -24,9 +24,12 @@ adminRoutes.get('/gym', async (req: AuthRequest, res) => {
 // List members for admin's gym
 adminRoutes.get('/members', async (req: AuthRequest, res) => {
   try {
-    const { status, search } = req.query;
-    let query = `
-      SELECT m.*, ac.code as access_code, s.status as subscription_status
+    const { status, search, page, limit } = req.query;
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 50));
+    const offset = (pageNum - 1) * limitNum;
+
+    let baseQuery = `
       FROM members m
       LEFT JOIN access_codes ac ON m.member_id = ac.member_id AND ac.valid_to IS NULL
       LEFT JOIN subscriptions s ON m.member_id = s.member_id AND s.status = 'active'
@@ -36,18 +39,32 @@ adminRoutes.get('/members', async (req: AuthRequest, res) => {
 
     if (status) {
       params.push(status);
-      query += ` AND m.status = $${params.length}`;
+      baseQuery += ` AND m.status = $${params.length}`;
     }
 
     if (search) {
       params.push(`%${search}%`);
-      query += ` AND (m.name ILIKE $${params.length} OR m.email ILIKE $${params.length})`;
+      baseQuery += ` AND (m.name ILIKE $${params.length} OR m.email ILIKE $${params.length})`;
     }
 
-    query += ' ORDER BY m.created_at DESC';
+    const countResult = await pool.query(`SELECT COUNT(*) ${baseQuery}`, params);
+    const total = parseInt(countResult.rows[0].count);
 
-    const result = await pool.query(query, params);
-    res.json(result.rows);
+    const dataParams = [...params, limitNum, offset];
+    const result = await pool.query(
+      `SELECT m.*, ac.code as access_code, s.status as subscription_status ${baseQuery} ORDER BY m.created_at DESC LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
+      dataParams
+    );
+
+    res.json({
+      members: result.rows,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum),
+      },
+    });
   } catch (err) {
     console.error('List members error:', err);
     res.status(500).json({ error: 'Internal server error' });

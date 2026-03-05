@@ -143,9 +143,81 @@
 - Shows action buttons: Resend Access Info, Suspend, Cancel
 - Member names in list are now clickable links to detail page
 
+---
+
+## Session 5 - Coding Agent (2026-03-05)
+
+### Completed (125/166 passing, up from 57)
+
+#### Style/Design Features Verified (features 110-145 batch)
+- Landing page: responsive design, mobile hero heading fixed (text-4xl sm:text-5xl lg:text-7xl)
+- Landing page: footer added with logo, nav links, copyright
+- Signup page: footer added with OpenGym branding, Stripe security note, copyright
+- Admin member status count cards added (clickable filters for Total/Active/Pending/Past Due/Suspended/Cancelled)
+- Confirmation modals for Suspend/Cancel actions (with member name and warning text)
+- Cancellation notification email queued on member cancel
+
+#### Admin Members Page (features 84, 129, 138)
+- Status count cards: Total, Active, Pending, Past Due, Suspended, Cancelled
+- Cards act as clickable filters (toggle active state with ring highlight)
+- Suspend/Cancel buttons now open confirmation modal before executing
+- Modal shows member name, action-specific description, colored confirm button
+
+#### Notifications (features 23, 29, 30, 108)
+- Access codes revoked on cancel (already implemented)
+- Cancellation notification: INSERT INTO notifications with type='cancellation' on cancel
+- API hot reload issue: tsx watch in Docker wasn't picking up changes; fixed with docker compose restart api
+- Worker processes multiple notification types; emails confirmed in MailHog
+
+#### Gym Isolation Verified (feature 85)
+- Admin2 token sees 0 members; Admin1 sees own gym members only
+- All admin queries use WHERE gym_id = req.gymId from JWT
+
+#### Settings Propagation Verified (feature 157)
+- Changed price in settings, signup page immediately reflected new price
+
+---
+
+## Session 6 - Coding Agent (2026-03-05)
+
+### Completed (131/166 passing, up from 125)
+
+#### Worker Retry Logic (feature 20)
+- Added `retry_count INTEGER DEFAULT 0` and `error_message TEXT` columns to notifications table
+- Updated worker to pick up both 'pending' AND 'failed' notifications with retry_count < 3
+- On failure: increments retry_count, keeps status 'pending' until MAX_RETRIES=3, then 'failed'
+- Ran `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS ...` directly on running DB
+
+#### Rate Limiting (feature 27)
+- Created `api/src/middleware/rateLimit.ts` — simple in-memory sliding window rate limiter
+- Applied: /auth → 30 req/min, /members → 60 req/min, /gyms → 60 req/min
+- Returns 429 with `retryAfter` seconds in response
+- Verified: 35 rapid auth requests triggered 429 on request 30
+
+#### Pagination (features 33, 41)
+- `/admin/members` now returns `{ members: [...], pagination: { total, page, limit, pages } }`
+- Supports `?page=N&limit=N` query params (default limit=50, max=100)
+- Frontend updated: handles new response shape, shows page buttons + Showing X–Y of Z
+- Verified with 55 members: page 1 shows 50, page 2 shows 5
+
+#### Individual PIN (feature 9)
+- Already implemented in access.ts — uniqueness check within gym loop up to 100 attempts
+- Verified: two members in Individual PIN gym got different 4-digit codes (3153, 0294)
+
+#### ACCESS_CODE_LENGTH (feature 11)
+- Already implemented: `parseInt(process.env.ACCESS_CODE_LENGTH || '4')`
+- Verified: generated codes are always 4 digits (env set to 4)
+
+### Remaining Non-Stripe Features
+- Feature 15: Admin notification template editing (UI + backend)
+- Feature 23: Expired subscription → Expired status (needs scheduled job or webhook)
+- Feature 26: Access codes stored encrypted in DB
+- Feature 32: Gym deletion cascade
+- Feature 40: Notification content verification
+
 ### Next Session Should
-1. Implement Stripe checkout integration (features 12-19) - needs real Stripe test keys
-2. Style/design features - many may pass with current design (test #110-145)
-3. Admin dashboard member count cards by status (feature 77-ish)
-4. Notification emails (features 26-30) - worker already set up
-5. Admin registration flow (feature 49)
+1. Implement Stripe checkout (features 12-19) — needs real Stripe test keys
+2. Feature 15: Admin notification template editing
+3. Feature 26: Access code encryption
+4. Feature 32: DB cascade on gym deletion
+5. Verify more style features (110-145 range)

@@ -81,6 +81,9 @@ const migrations = `
     sent_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW()
   );
+
+  ALTER TABLE notifications ADD COLUMN IF NOT EXISTS retry_count INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE notifications ADD COLUMN IF NOT EXISTS error_message TEXT;
 `;
 
 async function runMigrations() {

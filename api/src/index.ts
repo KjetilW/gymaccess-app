@@ -8,6 +8,7 @@ import { webhookRoutes } from './routes/webhooks';
 import { accessRoutes } from './routes/access';
 import { adminRoutes } from './routes/admin';
 import { subscriptionRoutes } from './routes/subscriptions';
+import { rateLimit } from './middleware/rateLimit';
 
 const app = express();
 const PORT = process.env.API_PORT || 8080;
@@ -17,6 +18,11 @@ app.use('/webhooks/stripe', express.raw({ type: 'application/json' }));
 
 app.use(cors());
 app.use(express.json());
+
+// Rate limiting: 100 requests per minute for public endpoints, 30 for auth
+app.use('/auth', rateLimit(30, 60 * 1000));
+app.use('/members', rateLimit(60, 60 * 1000));
+app.use('/gyms', rateLimit(60, 60 * 1000));
 
 // Health check
 app.get('/health', async (_req, res) => {

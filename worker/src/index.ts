@@ -15,10 +15,17 @@ const transporter = nodemailer.createTransport({
   } : undefined,
 });
 
+const MAX_RETRIES = 3;
+
 async function processNotifications() {
   try {
+    // Pick up pending notifications and retryable failed ones
     const result = await pool.query(
-      "SELECT * FROM notifications WHERE status = 'pending' ORDER BY created_at ASC LIMIT 10"
+      `SELECT * FROM notifications
+       WHERE status = 'pending'
+          OR (status = 'failed' AND retry_count < $1)
+       ORDER BY created_at ASC LIMIT 10`,
+      [MAX_RETRIES]
     );
 
     for (const notification of result.rows) {
@@ -39,11 +46,17 @@ async function processNotifications() {
 
         console.log(`Notification ${notification.notification_id} sent to ${notification.recipient}`);
       } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
         console.error(`Failed to send notification ${notification.notification_id}:`, err);
+        const newRetryCount = (notification.retry_count || 0) + 1;
+        const newStatus = newRetryCount >= MAX_RETRIES ? 'failed' : 'pending';
         await pool.query(
-          "UPDATE notifications SET status = 'failed' WHERE notification_id = $1",
-          [notification.notification_id]
+          "UPDATE notifications SET status = $1, retry_count = $2, error_message = $3 WHERE notification_id = $4",
+          [newStatus, newRetryCount, errorMsg, notification.notification_id]
         );
+        if (newStatus === 'failed') {
+          console.log(`Notification ${notification.notification_id} permanently failed after ${newRetryCount} retries`);
+        }
       }
     }
   } catch (err) {

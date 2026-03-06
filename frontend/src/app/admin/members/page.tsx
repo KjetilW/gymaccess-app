@@ -37,6 +37,8 @@ interface ConfirmModal {
   action: 'suspend' | 'cancel';
 }
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
 export default function MembersPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
@@ -47,6 +49,13 @@ export default function MembersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState<ConfirmModal | null>(null);
+  const [gymId, setGymId] = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  useEffect(() => {
+    const id = localStorage.getItem('gymId') || '';
+    setGymId(id);
+  }, []);
 
   const loadMembers = useCallback(async (q = '', status = '', page = 1) => {
     const token = localStorage.getItem('token');
@@ -113,6 +122,24 @@ export default function MembersPage() {
             {pagination ? `${pagination.total} total` : `${members.length} total`}
           </p>
         </div>
+        {gymId && (
+          <div className="flex items-center gap-2 bg-white border border-warm-200 rounded-xl px-4 py-2.5 shadow-sm">
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold text-forest-600 uppercase tracking-widest mb-0.5">Signup link</span>
+              <span className="text-sm text-forest-800 font-mono truncate max-w-[240px]">{APP_URL}/join/{gymId}</span>
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(`${APP_URL}/join/${gymId}`);
+                setLinkCopied(true);
+                setTimeout(() => setLinkCopied(false), 2000);
+              }}
+              className="ml-2 px-3 py-1.5 text-xs font-semibold bg-forest-900 text-white rounded-lg hover:bg-forest-800 transition-colors whitespace-nowrap"
+            >
+              {linkCopied ? '✓ Copied' : 'Copy'}
+            </button>
+          </div>
+        )}
       </div>
 
       {!loading && !error && (

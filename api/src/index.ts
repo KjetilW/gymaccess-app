@@ -9,6 +9,7 @@ import { accessRoutes } from './routes/access';
 import { adminRoutes } from './routes/admin';
 import { subscriptionRoutes } from './routes/subscriptions';
 import { rateLimit } from './middleware/rateLimit';
+import { runMigrations } from './migrate';
 
 const app = express();
 const PORT = process.env.API_PORT || 8080;
@@ -48,8 +49,13 @@ app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`GymAccess API running on port ${PORT}`);
+  try {
+    await runMigrations();
+  } catch (err) {
+    console.error('Migration error on startup:', err);
+  }
 });
 
 export default app;

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db';
 import crypto from 'crypto';
+import { encryptCode, decryptCode, isEncrypted } from '../utils/crypto';
 
 export const accessRoutes = Router();
 
@@ -42,22 +43,22 @@ accessRoutes.post('/generate', async (req, res) => {
       }
     } else {
       // Generate individual PIN, ensure uniqueness within gym
-      let unique = false;
+      // Fetch all current active codes for this gym and decrypt them for comparison
+      const existing = await pool.query(
+        `SELECT ac.code FROM access_codes ac
+         JOIN members m ON ac.member_id = m.member_id
+         WHERE m.gym_id = $1 AND ac.valid_to IS NULL`,
+        [member.gym_id]
+      );
+      const usedCodes = new Set(
+        existing.rows.map((r: { code: string }) => isEncrypted(r.code) ? decryptCode(r.code) : r.code)
+      );
+
       code = generatePin(codeLength);
       let attempts = 0;
-      while (!unique && attempts < 100) {
-        const existing = await pool.query(
-          `SELECT code_id FROM access_codes ac
-           JOIN members m ON ac.member_id = m.member_id
-           WHERE m.gym_id = $1 AND ac.code = $2 AND ac.valid_to IS NULL`,
-          [member.gym_id, code]
-        );
-        if (existing.rows.length === 0) {
-          unique = true;
-        } else {
-          code = generatePin(codeLength);
-          attempts++;
-        }
+      while (usedCodes.has(code) && attempts < 100) {
+        code = generatePin(codeLength);
+        attempts++;
       }
     }
 
@@ -67,14 +68,16 @@ accessRoutes.post('/generate', async (req, res) => {
       [memberId]
     );
 
-    // Create new code
+    // Encrypt and store new code
+    const encryptedCode = encryptCode(code);
     const result = await pool.query(
       `INSERT INTO access_codes (member_id, code, valid_from)
        VALUES ($1, $2, NOW()) RETURNING *`,
-      [memberId, code]
+      [memberId, encryptedCode]
     );
 
-    res.status(201).json(result.rows[0]);
+    // Return with plaintext code for the caller
+    res.status(201).json({ ...result.rows[0], code });
   } catch (err) {
     console.error('Generate access code error:', err);
     res.status(500).json({ error: 'Internal server error' });

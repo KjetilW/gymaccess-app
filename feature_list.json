@@ -538,7 +538,7 @@
       "Step 5: Save changes",
       "Step 6: Verify template changes are persisted"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -746,7 +746,7 @@
       "Step 3: Run docker compose up",
       "Step 4: Verify database is empty (tables recreated via migrations)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1059,7 +1059,7 @@
       "Step 2: Query the database directly",
       "Step 3: Verify the stored code is encrypted/hashed, not plain text"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1256,7 +1256,7 @@
       "Step 2: Attempt to delete the gym",
       "Step 3: Verify either cascade delete works or deletion is prevented with clear error"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1713,7 +1713,7 @@
       "Step 12: Open signup link in incognito/new browser",
       "Step 13: Verify gym name and price are shown on signup page"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

@@ -1,11 +1,33 @@
 import { Router } from 'express';
 import { pool } from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
+import { encryptCode, decryptCode, isEncrypted } from '../utils/crypto';
+
+function safeDecrypt(code: string | null): string | null {
+  if (!code) return null;
+  return isEncrypted(code) ? decryptCode(code) : code;
+}
 
 export const adminRoutes = Router();
 
 // All admin routes require authentication
 adminRoutes.use(requireAuth);
+
+// Delete gym (cascade deletes all members, admins, etc.)
+adminRoutes.delete('/gym', async (req: AuthRequest, res) => {
+  try {
+    // Break circular FK: set admin_user to NULL before delete
+    await pool.query('UPDATE gyms SET admin_user = NULL WHERE gym_id = $1', [req.gymId]);
+    const result = await pool.query('DELETE FROM gyms WHERE gym_id = $1 RETURNING gym_id', [req.gymId]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Gym not found' });
+    }
+    res.json({ deleted: true, gym_id: req.gymId });
+  } catch (err) {
+    console.error('Delete gym error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Get gym details for admin
 adminRoutes.get('/gym', async (req: AuthRequest, res) => {
@@ -56,8 +78,13 @@ adminRoutes.get('/members', async (req: AuthRequest, res) => {
       dataParams
     );
 
+    const members = result.rows.map(m => ({
+      ...m,
+      access_code: safeDecrypt(m.access_code),
+    }));
+
     res.json({
-      members: result.rows,
+      members,
       pagination: {
         total,
         page: pageNum,
@@ -87,7 +114,8 @@ adminRoutes.get('/members/:memberId', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Member not found' });
     }
 
-    res.json(result.rows[0]);
+    const member = result.rows[0];
+    res.json({ ...member, access_code: safeDecrypt(member.access_code) });
   } catch (err) {
     console.error('Get member detail error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -172,10 +200,11 @@ adminRoutes.post('/members/:memberId/resend', async (req: AuthRequest, res) => {
 
     // TODO: Queue notification via worker
     const member = result.rows[0];
+    const plainCode = safeDecrypt(member.access_code);
     await pool.query(
       `INSERT INTO notifications (member_id, type, channel, recipient, subject, body, status)
        VALUES ($1, 'access_info', 'email', $2, 'Your Access Information', $3, 'pending')`,
-      [member.member_id, member.email, `Your access code is: ${member.access_code}`]
+      [member.member_id, member.email, `Your access code is: ${plainCode}`]
     );
 
     res.json({ message: 'Access info resend queued' });
@@ -200,7 +229,10 @@ adminRoutes.get('/access', async (req: AuthRequest, res) => {
     res.json({
       accessType: gym.rows[0]?.access_type,
       sharedPin: gym.rows[0]?.shared_pin,
-      codes: codes.rows
+      codes: codes.rows.map((c: { code: string; [key: string]: unknown }) => ({
+        ...c,
+        code: safeDecrypt(c.code),
+      })),
     });
   } catch (err) {
     console.error('Get access codes error:', err);
@@ -230,7 +262,7 @@ adminRoutes.post('/access/rotate', async (req: AuthRequest, res) => {
       );
       await pool.query(
         "INSERT INTO access_codes (member_id, code, valid_from) VALUES ($1, $2, NOW())",
-        [member.member_id, newPin]
+        [member.member_id, encryptCode(newPin)]
       );
       // Queue notification
       await pool.query(
@@ -276,6 +308,41 @@ adminRoutes.get('/payments', async (req: AuthRequest, res) => {
     });
   } catch (err) {
     console.error('Get payments error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get notification templates
+adminRoutes.get('/notification-templates', async (req: AuthRequest, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT type, subject, body FROM notification_templates WHERE gym_id = $1 ORDER BY type',
+      [req.gymId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Get notification templates error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update a notification template
+adminRoutes.put('/notification-templates/:type', async (req: AuthRequest, res) => {
+  try {
+    const { type } = req.params;
+    const { subject, body } = req.body;
+    if (!subject || !body) return res.status(400).json({ error: 'Subject and body required' });
+
+    await pool.query(
+      `INSERT INTO notification_templates (gym_id, type, subject, body, updated_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (gym_id, type) DO UPDATE SET subject = $3, body = $4, updated_at = NOW()`,
+      [req.gymId, type, subject, body]
+    );
+
+    res.json({ type, subject, body });
+  } catch (err) {
+    console.error('Update notification template error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

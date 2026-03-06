@@ -84,18 +84,57 @@ const migrations = `
 
   ALTER TABLE notifications ADD COLUMN IF NOT EXISTS retry_count INTEGER NOT NULL DEFAULT 0;
   ALTER TABLE notifications ADD COLUMN IF NOT EXISTS error_message TEXT;
+
+  CREATE TABLE IF NOT EXISTS notification_templates (
+    template_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    gym_id UUID NOT NULL REFERENCES gyms(gym_id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    subject VARCHAR(500) NOT NULL,
+    body TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(gym_id, type)
+  );
+
+  -- Add cascade deletes for gym deletion support
+  ALTER TABLE access_codes DROP CONSTRAINT IF EXISTS access_codes_member_id_fkey;
+  ALTER TABLE access_codes ADD CONSTRAINT access_codes_member_id_fkey
+    FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE;
+
+  ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS subscriptions_member_id_fkey;
+  ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_member_id_fkey
+    FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE;
+
+  ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_member_id_fkey;
+  ALTER TABLE notifications ADD CONSTRAINT notifications_member_id_fkey
+    FOREIGN KEY (member_id) REFERENCES members(member_id) ON DELETE CASCADE;
+
+  ALTER TABLE members DROP CONSTRAINT IF EXISTS members_gym_id_fkey;
+  ALTER TABLE members ADD CONSTRAINT members_gym_id_fkey
+    FOREIGN KEY (gym_id) REFERENCES gyms(gym_id) ON DELETE CASCADE;
+
+  ALTER TABLE admins DROP CONSTRAINT IF EXISTS admins_gym_id_fkey;
+  ALTER TABLE admins ADD CONSTRAINT admins_gym_id_fkey
+    FOREIGN KEY (gym_id) REFERENCES gyms(gym_id) ON DELETE CASCADE;
+
+  ALTER TABLE gyms DROP CONSTRAINT IF EXISTS gyms_admin_user_fkey;
+  ALTER TABLE gyms ADD CONSTRAINT gyms_admin_user_fkey
+    FOREIGN KEY (admin_user) REFERENCES admins(admin_id) ON DELETE SET NULL;
 `;
 
-async function runMigrations() {
+export async function runMigrations() {
   try {
     await pool.query(migrations);
     console.log('Migrations completed successfully.');
   } catch (err) {
     console.error('Migration error:', err);
-    process.exit(1);
-  } finally {
-    await pool.end();
+    throw err;
   }
 }
 
-runMigrations();
+// Run directly if invoked as script
+if (require.main === module) {
+  runMigrations()
+    .catch(() => process.exit(1))
+    .finally(() => pool.end());
+}

@@ -2105,7 +2105,7 @@
       "Step 8: Verify return_url points back to admin settings page",
       "Step 9: Verify refresh_url points back to admin settings page"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2149,7 +2149,7 @@
       "Step 6: Verify checkout session has application_fee_amount equal to 5% of membership_price in smallest currency unit",
       "Step 7: Verify checkout session does NOT have on_behalf_of set to platform account"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2164,7 +2164,7 @@
       "Step 7: Verify application_fee_amount is 0 or not set",
       "Step 8: Verify PLATFORM_FEE_PERCENT is documented in .env.example with a comment"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2274,7 +2274,7 @@
       "Step 5: Verify return_url points back to admin settings page",
       "Step 6: Verify 400 is returned if gym has no saas_stripe_customer_id"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

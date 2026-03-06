@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db';
 import crypto from 'crypto';
 import { activateMemberAccess } from './subscriptions';
+import { deleteAccessCode } from '../utils/seam';
 
 export const webhookRoutes = Router();
 
@@ -24,6 +25,25 @@ function verifyStripeSignature(payload: Buffer | string, sigHeader: string, secr
   } catch {
     return false;
   }
+}
+
+// Revoke all active access codes for a member (DB + Seam if applicable)
+async function revokeAccessCodes(memberId: string) {
+  const activeCodes = await pool.query(
+    "SELECT provider_code_id, source FROM access_codes WHERE member_id = $1 AND valid_to IS NULL",
+    [memberId]
+  );
+  for (const row of activeCodes.rows) {
+    if (row.source === 'igloohome' && row.provider_code_id) {
+      await deleteAccessCode(row.provider_code_id).catch(err =>
+        console.error('Seam deleteAccessCode failed:', err)
+      );
+    }
+  }
+  await pool.query(
+    "UPDATE access_codes SET valid_to = NOW() WHERE member_id = $1 AND valid_to IS NULL",
+    [memberId]
+  );
 }
 
 // Handle member payment events (checkout, invoices, cancellations)
@@ -78,13 +98,32 @@ async function handleMemberEvent(event: any) {
             "UPDATE members SET status = 'active', updated_at = NOW() WHERE member_id = $1",
             [memberId]
           );
+
+          // Get period end date from invoice for Seam time-bound PIN
+          const periodEnd = invoice.period_end
+            ? new Date(invoice.period_end * 1000)
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
           const activeCode = await pool.query(
             "SELECT code_id FROM access_codes WHERE member_id = $1 AND valid_to IS NULL",
             [memberId]
           );
           if (activeCode.rows.length === 0) {
-            await activateMemberAccess(memberId);
+            // No active code — create one (handles igloohome + internal)
+            await activateMemberAccess(memberId, periodEnd);
+          } else {
+            // On renewal, refresh igloohome algoPIN for new billing period
+            const codeInfo = await pool.query(
+              "SELECT source, provider_code_id FROM access_codes WHERE member_id = $1 AND valid_to IS NULL LIMIT 1",
+              [memberId]
+            );
+            if (codeInfo.rows[0]?.source === 'igloohome') {
+              // Revoke old and create new Seam PIN for next period
+              await revokeAccessCodes(memberId);
+              await activateMemberAccess(memberId, periodEnd);
+            }
           }
+
           if (memberData.rows.length > 0) {
             const m = memberData.rows[0];
             await pool.query(
@@ -120,10 +159,7 @@ async function handleMemberEvent(event: any) {
             "UPDATE members SET status = 'past_due', updated_at = NOW() WHERE member_id = $1",
             [memberId]
           );
-          await pool.query(
-            "UPDATE access_codes SET valid_to = NOW() WHERE member_id = $1 AND valid_to IS NULL",
-            [memberId]
-          );
+          await revokeAccessCodes(memberId);
           if (memberData.rows.length > 0) {
             const m = memberData.rows[0];
             await pool.query(
@@ -156,10 +192,7 @@ async function handleMemberEvent(event: any) {
           "UPDATE subscriptions SET status = 'cancelled', end_date = NOW() WHERE provider_subscription_id = $1",
           [subscription.id]
         );
-        await pool.query(
-          "UPDATE access_codes SET valid_to = NOW() WHERE member_id = $1 AND valid_to IS NULL",
-          [memberId]
-        );
+        await revokeAccessCodes(memberId);
         const memberData = await pool.query(
           `SELECT m.name, m.email, g.name as gym_name
            FROM members m JOIN gyms g ON m.gym_id = g.gym_id WHERE m.member_id = $1`,

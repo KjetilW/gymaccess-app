@@ -13,6 +13,10 @@ interface MemberDetail {
   phone: string | null;
   status: string;
   access_code: string | null;
+  access_source: string | null;
+  provider_code_id: string | null;
+  subscription_end_date: string | null;
+  igloohome_configured: boolean;
   created_at: string;
   updated_at: string;
   provider: string | null;
@@ -38,6 +42,9 @@ export default function MemberDetailPage() {
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState('');
+  const [pinCopied, setPinCopied] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenMsg, setRegenMsg] = useState('');
 
   const loadMember = async () => {
     const token = localStorage.getItem('token');
@@ -71,6 +78,35 @@ export default function MemberDetailPage() {
       setActionMsg('Action failed.');
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleCopyPin = async () => {
+    if (!member?.access_code) return;
+    try {
+      await navigator.clipboard.writeText(member.access_code);
+      setPinCopied(true);
+      setTimeout(() => setPinCopied(false), 2000);
+    } catch { /* ignore */ }
+  };
+
+  const handleRegeneratePin = async () => {
+    const token = localStorage.getItem('token');
+    setRegenerating(true);
+    setRegenMsg('');
+    try {
+      const res = await fetch(`${API_URL}/admin/members/${memberId}/igloohome/regenerate`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to regenerate');
+      setRegenMsg('PIN regenerated successfully.');
+      await loadMember();
+    } catch (err: any) {
+      setRegenMsg(err.message || 'Failed to regenerate PIN.');
+    } finally {
+      setRegenerating(false);
     }
   };
 
@@ -163,6 +199,77 @@ export default function MemberDetailPage() {
           )}
         </dl>
       </div>
+
+      {/* igloohome algoPIN — only shown when igloohome is configured for this gym */}
+      {member.igloohome_configured && (
+        <div className="bg-white rounded-2xl border border-warm-200 p-6 mb-4">
+          <h2 className="font-display font-semibold text-base text-forest-900 mb-4">igloohome algoPIN</h2>
+
+          {member.access_source === 'igloohome' && member.access_code ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-4 bg-forest-50 border border-forest-200 rounded-xl">
+                <div className="flex-1">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-forest-600 mb-1">Current PIN</div>
+                  <div className="font-mono text-2xl font-bold text-forest-900 tracking-widest">{member.access_code}</div>
+                  {member.subscription_end_date && (
+                    <div className="text-xs text-gray-400 mt-1">
+                      Valid until {new Date(member.subscription_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={handleCopyPin}
+                  className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-forest-300 text-forest-700 rounded-lg hover:bg-forest-100 transition-colors"
+                >
+                  {pinCopied ? (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Copy PIN
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {regenMsg && (
+                <p className="text-xs text-forest-700 bg-forest-50 border border-forest-200 rounded-lg px-3 py-2">{regenMsg}</p>
+              )}
+
+              <button
+                onClick={handleRegeneratePin}
+                disabled={regenerating}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-warm-200 rounded-xl text-forest-700 hover:bg-forest-50 disabled:opacity-50 transition-colors"
+              >
+                {regenerating ? (
+                  <span className="w-4 h-4 border-2 border-forest-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                )}
+                Regenerate PIN
+              </button>
+            </div>
+          ) : (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+              <p className="text-sm text-yellow-800">
+                {member.status !== 'active'
+                  ? 'Member is not active — no igloohome PIN is assigned.'
+                  : 'PIN generation failed or is pending. Try regenerating.'
+                }
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="bg-white rounded-2xl border border-warm-200 p-6">

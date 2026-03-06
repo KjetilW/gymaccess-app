@@ -133,6 +133,14 @@ const migrations = `
 
   -- Set trial_ends_at for existing gyms that don't have it yet
   UPDATE gyms SET trial_ends_at = NOW() + INTERVAL '30 days' WHERE trial_ends_at IS NULL;
+
+  -- Seam/igloohome integration fields
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS seam_connected_account_id VARCHAR(255);
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS seam_device_id VARCHAR(255);
+
+  -- Track the provider's access code ID (e.g. Seam access_code_id) and source
+  ALTER TABLE access_codes ADD COLUMN IF NOT EXISTS provider_code_id VARCHAR(255);
+  ALTER TABLE access_codes ADD COLUMN IF NOT EXISTS source VARCHAR(50) NOT NULL DEFAULT 'internal';
 `;
 
 export async function runMigrations() {

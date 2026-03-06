@@ -2351,5 +2351,201 @@
       "Step 8: Verify 'Manage Subscription' button is clearly labeled and accessible"
     ],
     "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Platform-level Seam API key is configured via SEAM_API_KEY environment variable",
+    "steps": [
+      "Step 1: Verify SEAM_API_KEY is present in .env.example as a documented required variable",
+      "Step 2: Verify the API server reads SEAM_API_KEY on startup and exposes a Seam client utility",
+      "Step 3: Verify the Seam client is initialized from api/src/utils/seam.ts (or similar)",
+      "Step 4: Verify that if SEAM_API_KEY is not set, the igloohome integration routes return 503 with a clear error"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Admin links their igloohome account to GymAccess via Seam Connect Webview",
+    "steps": [
+      "Step 1: Log in as admin and navigate to Settings page",
+      "Step 2: Click 'Connect igloohome Account' button in the Smart Lock section",
+      "Step 3: Call POST /admin/igloohome/connect \u2014 verify it creates a Seam Connect Webview and returns a webview URL",
+      "Step 4: Verify the webview URL is opened (redirect or modal) allowing the admin to log in to their igloohome account",
+      "Step 5: After completing the Seam Connect flow, verify the gym's seam_connected_account_id is saved in the gyms table",
+      "Step 6: Verify the Settings page shows the igloohome account as 'Connected'"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Admin can view igloohome devices linked via Seam and select one as the gym keybox",
+    "steps": [
+      "Step 1: Complete Seam Connect Webview so igloohome account is linked",
+      "Step 2: Call GET /admin/igloohome/devices",
+      "Step 3: Verify response contains devices from Seam API (id, display_name, device_type) filtered to igloohome keyboxes",
+      "Step 4: In Settings UI, verify a device selector appears listing devices by name",
+      "Step 5: Select the Keybox 3 device and save",
+      "Step 6: Verify PUT /admin/settings/igloohome with { device_id: '...' } stores device_id in gyms.seam_device_id",
+      "Step 7: Reload Settings and verify selected device name is shown"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Admin can disconnect igloohome integration from Settings, clearing Seam account link and device selection",
+    "steps": [
+      "Step 1: Complete igloohome setup with a connected account and selected device",
+      "Step 2: Navigate to Settings page and click 'Disconnect'",
+      "Step 3: Call DELETE /admin/igloohome/connect",
+      "Step 4: Verify seam_connected_account_id and seam_device_id are cleared from the gyms table",
+      "Step 5: Verify Settings page shows igloohome section as 'Not connected'",
+      "Step 6: Verify subsequent member activations do not attempt igloohome PIN creation"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "When a member is activated and igloohome is configured, a time-bound offline algoPIN is created via Seam API",
+    "steps": [
+      "Step 1: Configure igloohome via Seam Connect and select a Keybox 3 device",
+      "Step 2: Create a new member and simulate Stripe checkout.session.completed webhook",
+      "Step 3: Verify activateMemberAccess calls Seam API (POST /access_codes/create) with is_offline_access_code=true",
+      "Step 4: Verify the request uses starts_at = now and ends_at = subscription end date (next billing date)",
+      "Step 5: Verify the returned algoPIN code (7\u20139 digit number) is stored encrypted in the access_codes table",
+      "Step 6: Verify the Seam access_code_id is stored for reference (e.g. in access_codes.provider_code_id)"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "algoPIN from Seam is stored encrypted in the database and decrypted when returned via admin API",
+    "steps": [
+      "Step 1: Activate a member with igloohome integration configured",
+      "Step 2: Query access_codes table directly and verify code is stored encrypted (ivHex:ciphertextHex format)",
+      "Step 3: Call GET /admin/members/:memberId/access-codes",
+      "Step 4: Verify returned code is decrypted (7\u20139 digit PIN)",
+      "Step 5: Verify a source or type field identifies this as an igloohome algoPIN"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Welcome email sent to new member includes their igloohome algoPIN when igloohome integration is active",
+    "steps": [
+      "Step 1: Configure igloohome integration for the gym",
+      "Step 2: Activate a new member via Stripe checkout webhook",
+      "Step 3: Check MailHog (http://localhost:8025) for the welcome email",
+      "Step 4: Verify the email body contains the algoPIN code",
+      "Step 5: Verify the email body explains how to use the code on the Keybox 3",
+      "Step 6: Verify the notification_templates welcome body supports an {{access_pin}} or {{igloohome_pin}} placeholder"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "When subscription renews (invoice.payment_succeeded), a new time-bound algoPIN is created via Seam for the next billing period",
+    "steps": [
+      "Step 1: Set up an active member with igloohome integration configured",
+      "Step 2: Simulate an invoice.payment_succeeded webhook for the member's subscription renewal",
+      "Step 3: Verify the API calls Seam to create a new offline access code for the next billing period",
+      "Step 4: Verify starts_at = now and ends_at = next period end date",
+      "Step 5: Verify new PIN is stored in access_codes table",
+      "Step 6: Verify payment receipt notification is sent to member containing the renewed PIN"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "When subscription is cancelled, the Seam access code is deleted and no new algoPIN is generated",
+    "steps": [
+      "Step 1: Set up an active member with igloohome integration and an active algoPIN",
+      "Step 2: Simulate a customer.subscription.deleted webhook",
+      "Step 3: Verify the API calls Seam DELETE /access_codes/delete for the member's current code",
+      "Step 4: Verify member status transitions to 'cancelled'",
+      "Step 5: Verify no new PIN is created after cancellation",
+      "Step 6: Verify cancellation email mentions that keybox access has been revoked"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "When payment fails (invoice.payment_failed), the Seam access code is deleted until payment is recovered",
+    "steps": [
+      "Step 1: Set up an active member with igloohome integration",
+      "Step 2: Simulate invoice.payment_failed webhook",
+      "Step 3: Verify member transitions to 'past_due'",
+      "Step 4: Verify the API calls Seam to delete the current access code, revoking keybox entry",
+      "Step 5: Simulate a subsequent invoice.payment_succeeded to verify a new PIN is created and member is reactivated",
+      "Step 6: Verify payment_failed notification informs member their keybox access has been suspended"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Admin member detail page shows the igloohome algoPIN when igloohome integration is configured for the gym",
+    "steps": [
+      "Step 1: Configure igloohome integration for the gym",
+      "Step 2: Activate a member so an algoPIN is generated",
+      "Step 3: Navigate to the member's detail page in admin UI",
+      "Step 4: Verify the member's current igloohome algoPIN is shown (decrypted 7\u20139 digit number)",
+      "Step 5: Verify the PIN display has a copy-to-clipboard button",
+      "Step 6: Verify the PIN expiry date (ends_at) is shown",
+      "Step 7: Verify no igloohome PIN section appears for gyms without igloohome integration configured"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Admin can manually regenerate an igloohome algoPIN for a member from the member detail page",
+    "steps": [
+      "Step 1: Navigate to an active member's detail page with igloohome configured",
+      "Step 2: Click 'Regenerate PIN' button",
+      "Step 3: Call POST /admin/members/:memberId/igloohome/regenerate",
+      "Step 4: Verify the API deletes the existing Seam access code and creates a new one for the remaining subscription period",
+      "Step 5: Verify the new PIN is stored encrypted in access_codes",
+      "Step 6: Verify the member detail page updates to show the new PIN",
+      "Step 7: Verify a notification is optionally sent to the member with their new PIN"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Seam/igloohome errors are handled gracefully without breaking member activation",
+    "steps": [
+      "Step 1: Configure igloohome integration with an invalid or missing device_id",
+      "Step 2: Trigger member activation via webhook",
+      "Step 3: Verify member is still activated (status = 'active') even if Seam PIN creation fails",
+      "Step 4: Verify the error is logged server-side",
+      "Step 5: Verify the welcome email is still sent (without a PIN if creation failed)",
+      "Step 6: Verify admin can see a warning on member detail page if PIN generation failed"
+    ],
+    "passes": true
+  },
+  {
+    "category": "style",
+    "description": "Igloohome integration section in admin Settings has clear UI with connection status, Connect Webview button, and device selector",
+    "steps": [
+      "Step 1: Navigate to Settings page with no igloohome integration configured",
+      "Step 2: Verify a clearly labeled 'Smart Lock (igloohome via Seam)' section is present",
+      "Step 3: Verify the section has a brief explanation and a 'Connect igloohome Account' button",
+      "Step 4: Verify a 'Not connected' status badge is shown",
+      "Step 5: After connecting, verify a device dropdown appears with devices listed by name",
+      "Step 6: Verify a 'Disconnect' button and 'Connected' status badge are shown when configured",
+      "Step 7: Verify the section design matches the rest of the Settings page (Nordic Forest Industrial style)"
+    ],
+    "passes": true
+  },
+  {
+    "category": "style",
+    "description": "Member detail page igloohome algoPIN section has consistent design with copy and regenerate actions",
+    "steps": [
+      "Step 1: Navigate to an active member's detail page with igloohome configured",
+      "Step 2: Verify the algoPIN is displayed in a styled code/badge element",
+      "Step 3: Verify a 'Copy PIN' button is present and functional",
+      "Step 4: Verify a 'Regenerate' button is clearly visible but styled as a secondary action",
+      "Step 5: Verify the PIN expiry date is shown alongside the PIN",
+      "Step 6: Verify the section design matches the existing access code display in style and spacing"
+    ],
+    "passes": true
   }
 ]

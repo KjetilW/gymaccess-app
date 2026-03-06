@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db';
 import crypto from 'crypto';
 import { encryptCode, decryptCode, isEncrypted } from '../utils/crypto';
+import { isSeamConfigured, isSeamMockMode, createOfflineAccessCode, deleteAccessCode } from '../utils/seam';
 import Stripe from 'stripe';
 
 const stripe = process.env.STRIPE_API_KEY
@@ -16,9 +17,12 @@ function generatePin(length: number = 4): string {
 }
 
 // Generate access code and queue welcome notification for a newly activated member
-export async function activateMemberAccess(memberId: string): Promise<string | null> {
+// subscriptionEndDate: optional end date for the subscription period (used for Seam algoPIN time-bound)
+export async function activateMemberAccess(memberId: string, subscriptionEndDate?: Date): Promise<string | null> {
   const memberResult = await pool.query(
-    `SELECT m.*, g.access_type, g.shared_pin, g.name as gym_name FROM members m
+    `SELECT m.*, g.access_type, g.shared_pin, g.name as gym_name,
+            g.seam_device_id, g.seam_connected_account_id
+     FROM members m
      JOIN gyms g ON m.gym_id = g.gym_id
      WHERE m.member_id = $1`,
     [memberId]
@@ -27,9 +31,31 @@ export async function activateMemberAccess(memberId: string): Promise<string | n
 
   const member = memberResult.rows[0];
   const codeLength = parseInt(process.env.ACCESS_CODE_LENGTH || '4');
-  let code: string;
+  const useSeam = (isSeamConfigured() || isSeamMockMode()) && !!member.seam_device_id;
 
-  if (member.access_type === 'shared_pin') {
+  let code: string;
+  let seamAccessCodeId: string | null = null;
+  let seamError: string | null = null;
+
+  if (useSeam) {
+    // Create igloohome algoPIN via Seam
+    const startsAt = new Date();
+    const endsAt = subscriptionEndDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // default 30 days
+    try {
+      const result = await createOfflineAccessCode(member.seam_device_id, member.name, startsAt, endsAt);
+      if (result) {
+        code = result.code;
+        seamAccessCodeId = result.access_code_id;
+      } else {
+        seamError = 'Seam PIN creation returned null';
+        code = generatePin(codeLength);
+      }
+    } catch (err: any) {
+      seamError = String(err?.message || err);
+      console.error('Seam PIN creation failed, falling back to internal PIN:', seamError);
+      code = generatePin(codeLength);
+    }
+  } else if (member.access_type === 'shared_pin') {
     code = member.shared_pin || generatePin(codeLength);
     if (!member.shared_pin) {
       await pool.query('UPDATE gyms SET shared_pin = $1 WHERE gym_id = $2', [code, member.gym_id]);
@@ -53,28 +79,47 @@ export async function activateMemberAccess(memberId: string): Promise<string | n
     }
   }
 
-  // Revoke existing codes
+  // Revoke existing codes (also delete from Seam if applicable)
+  const existingCodes = await pool.query(
+    "SELECT provider_code_id, source FROM access_codes WHERE member_id = $1 AND valid_to IS NULL",
+    [memberId]
+  );
+  for (const existing of existingCodes.rows) {
+    if (existing.source === 'igloohome' && existing.provider_code_id) {
+      await deleteAccessCode(existing.provider_code_id).catch(err =>
+        console.error('Failed to delete Seam access code on revoke:', err)
+      );
+    }
+  }
+
   await pool.query(
     "UPDATE access_codes SET valid_to = NOW() WHERE member_id = $1 AND valid_to IS NULL",
     [memberId]
   );
 
-  // Store encrypted code
+  // Store encrypted code with source and provider_code_id
+  const source = useSeam && !seamError ? 'igloohome' : 'internal';
   await pool.query(
-    "INSERT INTO access_codes (member_id, code, valid_from) VALUES ($1, $2, NOW())",
-    [memberId, encryptCode(code)]
+    "INSERT INTO access_codes (member_id, code, valid_from, source, provider_code_id) VALUES ($1, $2, NOW(), $3, $4)",
+    [memberId, encryptCode(code), source, seamAccessCodeId]
   );
 
-  // Queue welcome notification with gym name and access code
+  // Build welcome notification body
+  let codeDisplay = code;
+  let emailBody: string;
+  if (useSeam && !seamError) {
+    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour igloohome keybox access PIN: ${codeDisplay}\n\nUse this code on the Keybox 3 at the gym entrance. The code is time-bound to your membership period.\n\nBest regards,\n${member.gym_name}`;
+  } else if (seamError) {
+    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code will be provided separately by your gym administrator.\n\nBest regards,\n${member.gym_name}`;
+    console.error(`Seam error for member ${memberId}: ${seamError}`);
+  } else {
+    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code: ${codeDisplay}\n\nBest regards,\n${member.gym_name}`;
+  }
+
   await pool.query(
     `INSERT INTO notifications (member_id, type, channel, recipient, subject, body, status)
      VALUES ($1, 'welcome', 'email', $2, $3, $4, 'pending')`,
-    [
-      memberId,
-      member.email,
-      `Welcome to ${member.gym_name}!`,
-      `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code: ${code}\n\nBest regards,\n${member.gym_name}`
-    ]
+    [memberId, member.email, `Welcome to ${member.gym_name}!`, emailBody]
   );
 
   return code;
@@ -166,11 +211,14 @@ subscriptionRoutes.post('/activate', async (req, res) => {
       return res.status(404).json({ error: 'Member not found' });
     }
 
+    // Default subscription period: 30 days
+    const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
     // Create subscription
     const subResult = await pool.query(
-      `INSERT INTO subscriptions (member_id, provider, provider_subscription_id, status, start_date)
-       VALUES ($1, $2, $3, 'active', NOW()) RETURNING *`,
-      [memberId, provider || 'manual', providerSubscriptionId || null]
+      `INSERT INTO subscriptions (member_id, provider, provider_subscription_id, status, start_date, end_date)
+       VALUES ($1, $2, $3, 'active', NOW(), $4) RETURNING *`,
+      [memberId, provider || 'manual', providerSubscriptionId || null, endDate]
     );
 
     // Update member status to active
@@ -180,7 +228,7 @@ subscriptionRoutes.post('/activate', async (req, res) => {
     );
 
     // Generate access code and queue welcome email
-    const code = await activateMemberAccess(memberId);
+    const code = await activateMemberAccess(memberId, endDate);
 
     res.status(201).json({ ...subResult.rows[0], accessCode: code });
   } catch (err) {

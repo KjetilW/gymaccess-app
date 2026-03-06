@@ -2,6 +2,11 @@ import { Router } from 'express';
 import { pool } from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { encryptCode, decryptCode, isEncrypted } from '../utils/crypto';
+import Stripe from 'stripe';
+
+const stripe = process.env.STRIPE_API_KEY
+  ? new Stripe(process.env.STRIPE_API_KEY, { apiVersion: '2024-06-20' as any })
+  : null;
 
 function safeDecrypt(code: string | null): string | null {
   if (!code) return null;
@@ -344,6 +349,125 @@ adminRoutes.put('/notification-templates/:type', async (req: AuthRequest, res) =
   } catch (err) {
     console.error('Update notification template error:', err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /admin/stripe/connect — create Stripe Express connected account and return onboarding URL
+adminRoutes.post('/stripe/connect', async (req: AuthRequest, res) => {
+  try {
+    if (!stripe) return res.status(503).json({ error: 'Stripe not configured' });
+
+    const gymResult = await pool.query(
+      'SELECT stripe_connect_account_id, stripe_connect_status FROM gyms WHERE gym_id = $1',
+      [req.gymId]
+    );
+    if (gymResult.rows.length === 0) return res.status(404).json({ error: 'Gym not found' });
+
+    const gym = gymResult.rows[0];
+    let accountId = gym.stripe_connect_account_id;
+
+    if (!accountId) {
+      const account = await stripe.accounts.create({ type: 'express' });
+      accountId = account.id;
+      await pool.query(
+        "UPDATE gyms SET stripe_connect_account_id = $1, stripe_connect_status = 'pending' WHERE gym_id = $2",
+        [accountId, req.gymId]
+      );
+    } else if (gym.stripe_connect_status !== 'active') {
+      await pool.query(
+        "UPDATE gyms SET stripe_connect_status = 'pending' WHERE gym_id = $1",
+        [req.gymId]
+      );
+    }
+
+    const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const accountLink = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${frontendUrl}/admin/settings`,
+      return_url: `${frontendUrl}/admin/settings`,
+      type: 'account_onboarding',
+    });
+
+    res.json({ url: accountLink.url, accountId });
+  } catch (err) {
+    console.error('Stripe connect error:', err);
+    res.status(500).json({ error: 'Failed to create Stripe Connect account' });
+  }
+});
+
+// POST /admin/saas/checkout — create Stripe Checkout session for GymAccess SaaS subscription
+adminRoutes.post('/saas/checkout', async (req: AuthRequest, res) => {
+  try {
+    if (!stripe) return res.status(503).json({ error: 'Stripe not configured' });
+
+    const { plan } = req.body;
+    if (!plan || !['monthly', 'yearly'].includes(plan)) {
+      return res.status(400).json({ error: 'plan must be monthly or yearly' });
+    }
+
+    const adminResult = await pool.query(
+      'SELECT email FROM admins WHERE gym_id = $1 LIMIT 1',
+      [req.gymId]
+    );
+    if (adminResult.rows.length === 0) return res.status(404).json({ error: 'Admin not found' });
+
+    const monthlyPrice = parseInt(process.env.SAAS_MONTHLY_PRICE || '299');
+    const yearlyPrice = parseInt(process.env.SAAS_YEARLY_PRICE || '2490');
+    const price = plan === 'yearly' ? yearlyPrice : monthlyPrice;
+    const interval = plan === 'yearly' ? 'year' : 'month';
+
+    const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      line_items: [{
+        price_data: {
+          currency: 'nok',
+          product_data: { name: 'GymAccess Platform Subscription' },
+          unit_amount: price * 100,
+          recurring: { interval },
+        },
+        quantity: 1,
+      }],
+      customer_email: adminResult.rows[0].email,
+      metadata: { gymId: req.gymId },
+      success_url: `${frontendUrl}/admin/settings`,
+      cancel_url: `${frontendUrl}/admin/settings`,
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('SaaS checkout error:', err);
+    res.status(500).json({ error: 'Failed to create SaaS checkout session' });
+  }
+});
+
+// POST /admin/saas/portal — return Stripe Customer Portal URL for managing SaaS subscription
+adminRoutes.post('/saas/portal', async (req: AuthRequest, res) => {
+  try {
+    if (!stripe) return res.status(503).json({ error: 'Stripe not configured' });
+
+    const gymResult = await pool.query(
+      'SELECT saas_stripe_customer_id FROM gyms WHERE gym_id = $1',
+      [req.gymId]
+    );
+    if (gymResult.rows.length === 0) return res.status(404).json({ error: 'Gym not found' });
+
+    const customerId = gymResult.rows[0].saas_stripe_customer_id;
+    if (!customerId) {
+      return res.status(400).json({ error: 'No Stripe customer found. Please subscribe first.' });
+    }
+
+    const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${frontendUrl}/admin/settings`,
+    });
+
+    res.json({ url: portal.url });
+  } catch (err) {
+    console.error('SaaS portal error:', err);
+    res.status(500).json({ error: 'Failed to create portal session' });
   }
 });
 

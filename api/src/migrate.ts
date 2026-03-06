@@ -120,6 +120,19 @@ const migrations = `
   ALTER TABLE gyms DROP CONSTRAINT IF EXISTS gyms_admin_user_fkey;
   ALTER TABLE gyms ADD CONSTRAINT gyms_admin_user_fkey
     FOREIGN KEY (admin_user) REFERENCES admins(admin_id) ON DELETE SET NULL;
+
+  -- Stripe Connect fields (feature 167)
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS stripe_connect_account_id VARCHAR(255);
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS stripe_connect_status VARCHAR(20) NOT NULL DEFAULT 'not_connected';
+
+  -- SaaS subscription fields (feature 175)
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS saas_status VARCHAR(20) NOT NULL DEFAULT 'trial';
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS saas_subscription_id VARCHAR(255);
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS saas_stripe_customer_id VARCHAR(255);
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP;
+
+  -- Set trial_ends_at for existing gyms that don't have it yet
+  UPDATE gyms SET trial_ends_at = NOW() + INTERVAL '30 days' WHERE trial_ends_at IS NULL;
 `;
 
 export async function runMigrations() {

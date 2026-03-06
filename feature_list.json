@@ -2077,5 +2077,279 @@
       "Step 11: Log in with demo credentials and verify dashboard works"
     ],
     "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Database migration adds Stripe Connect fields to gyms table (stripe_connect_account_id, stripe_connect_status)",
+    "steps": [
+      "Step 1: Run database migration",
+      "Step 2: Verify gyms table has stripe_connect_account_id column (nullable text)",
+      "Step 3: Verify gyms table has stripe_connect_status column with default 'not_connected'",
+      "Step 4: Verify stripe_connect_status accepts values: 'not_connected', 'pending', 'active'",
+      "Step 5: Verify existing gyms default to stripe_connect_status = 'not_connected'",
+      "Step 6: Verify migration is idempotent (running twice does not fail)"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "POST /admin/stripe/connect creates a Stripe Express connected account and returns onboarding URL",
+    "steps": [
+      "Step 1: Log in as admin and obtain JWT",
+      "Step 2: POST /admin/stripe/connect",
+      "Step 3: Verify 200 response with { url: '...', accountId: '...' }",
+      "Step 4: Verify a Stripe Express account is created via Stripe API",
+      "Step 5: Verify gym's stripe_connect_account_id is saved in DB",
+      "Step 6: Verify gym's stripe_connect_status is set to 'pending'",
+      "Step 7: Verify the URL is a valid Stripe account onboarding link",
+      "Step 8: Verify return_url points back to admin settings page",
+      "Step 9: Verify refresh_url points back to admin settings page"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Stripe account.updated webhook sets gym connect status to 'active' when onboarding completes",
+    "steps": [
+      "Step 1: Create gym with stripe_connect_account_id set and stripe_connect_status='pending'",
+      "Step 2: POST /webhooks/stripe with account.updated event where charges_enabled=true and payouts_enabled=true, with 'account' field matching gym's connected account ID",
+      "Step 3: Verify gym's stripe_connect_status is updated to 'active'",
+      "Step 4: POST /webhooks/stripe with account.updated where charges_enabled=false",
+      "Step 5: Verify gym's stripe_connect_status stays 'pending' (not yet active)",
+      "Step 6: Verify webhook returns 200 for both cases"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Admin Settings page shows Stripe Connect status with state-appropriate UI",
+    "steps": [
+      "Step 1: Log in as admin for gym with stripe_connect_status='not_connected'",
+      "Step 2: Navigate to Settings page",
+      "Step 3: Verify 'Stripe Connect' section is present",
+      "Step 4: Verify status shows 'Not Connected' with a 'Connect with Stripe' button",
+      "Step 5: Update gym to stripe_connect_status='pending'",
+      "Step 6: Reload Settings page",
+      "Step 7: Verify status shows 'Pending \u2014 complete Stripe onboarding' with re-initiate button",
+      "Step 8: Update gym to stripe_connect_status='active'",
+      "Step 9: Reload Settings page",
+      "Step 10: Verify status shows 'Connected' with a green indicator and no Connect button"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Stripe checkout session routes gym member payment to gym's connected Stripe account with platform fee",
+    "steps": [
+      "Step 1: Set gym's stripe_connect_account_id to a connected account ID and stripe_connect_status='active'",
+      "Step 2: Set PLATFORM_FEE_PERCENT=5 in environment",
+      "Step 3: Create a member for this gym",
+      "Step 4: POST /subscriptions/checkout with memberId",
+      "Step 5: Verify Stripe checkout session has transfer_data.destination set to the gym's connected account ID",
+      "Step 6: Verify checkout session has application_fee_amount equal to 5% of membership_price in smallest currency unit",
+      "Step 7: Verify checkout session does NOT have on_behalf_of set to platform account"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "PLATFORM_FEE_PERCENT environment variable controls the platform fee on gym member payments",
+    "steps": [
+      "Step 1: Set PLATFORM_FEE_PERCENT=10 in .env and restart API",
+      "Step 2: Create gym with active Connect and membership_price=300",
+      "Step 3: POST /subscriptions/checkout",
+      "Step 4: Verify application_fee_amount = 3000 (10% of 300 NOK expressed in \u00f8re)",
+      "Step 5: Set PLATFORM_FEE_PERCENT=0 and restart API",
+      "Step 6: POST /subscriptions/checkout",
+      "Step 7: Verify application_fee_amount is 0 or not set",
+      "Step 8: Verify PLATFORM_FEE_PERCENT is documented in .env.example with a comment"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Checkout returns an error when gym does not have an active Stripe Connect account",
+    "steps": [
+      "Step 1: Create gym with stripe_connect_status='not_connected'",
+      "Step 2: Create a member for this gym",
+      "Step 3: POST /subscriptions/checkout with memberId",
+      "Step 4: Verify response is 400 or 503 with descriptive error message",
+      "Step 5: Verify error message indicates the gym owner must connect their Stripe account",
+      "Step 6: Verify no Stripe checkout session is created",
+      "Step 7: Repeat for stripe_connect_status='pending' \u2014 verify same error"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Webhook handler routes events to correct handler: platform account events vs connected account events",
+    "steps": [
+      "Step 1: POST /webhooks/stripe with invoice.payment_succeeded event without 'account' field (platform SaaS event)",
+      "Step 2: Verify handler treats this as a SaaS billing event and updates gym.saas_status",
+      "Step 3: POST /webhooks/stripe with invoice.payment_succeeded with 'account' field set to gym's connected account ID (gym member payment event)",
+      "Step 4: Verify handler treats this as a member payment event and updates member status",
+      "Step 5: Verify no cross-contamination between the two event routing paths",
+      "Step 6: Verify both return 200"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Database migration adds SaaS subscription fields to gyms table (saas_status, saas_subscription_id, saas_stripe_customer_id, trial_ends_at)",
+    "steps": [
+      "Step 1: Run database migration",
+      "Step 2: Verify gyms table has saas_status column defaulting to 'trial'",
+      "Step 3: Verify saas_status accepts values: 'trial', 'active', 'past_due', 'cancelled'",
+      "Step 4: Verify gyms table has saas_subscription_id column (nullable text)",
+      "Step 5: Verify gyms table has saas_stripe_customer_id column (nullable text)",
+      "Step 6: Verify gyms table has trial_ends_at column (timestamp, nullable)",
+      "Step 7: Verify existing gyms have saas_status='trial' and trial_ends_at set"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "New gym registration automatically starts a 30-day free trial",
+    "steps": [
+      "Step 1: Register a new gym via POST /gyms (or admin registration form)",
+      "Step 2: Verify newly created gym has saas_status = 'trial'",
+      "Step 3: Verify trial_ends_at is set to approximately 30 days from registration date",
+      "Step 4: Verify gym admin can log in and access all admin features during trial",
+      "Step 5: Verify no payment is required to complete registration"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "POST /admin/saas/checkout creates a Stripe Checkout session for the gym owner to subscribe to GymAccess",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: POST /admin/saas/checkout with { plan: 'monthly' }",
+      "Step 3: Verify 200 response with { url: '...' }",
+      "Step 4: Verify Stripe checkout session is created in subscription mode with GymAccess product price",
+      "Step 5: Verify session amount matches SAAS_MONTHLY_PRICE env var",
+      "Step 6: Verify success_url redirects back to admin settings",
+      "Step 7: Verify cancel_url redirects back to admin settings",
+      "Step 8: Verify customer_email is set to the gym admin's email",
+      "Step 9: POST /admin/saas/checkout with { plan: 'yearly' } and verify amount matches SAAS_YEARLY_PRICE"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "SaaS checkout.session.completed webhook activates gym's SaaS subscription",
+    "steps": [
+      "Step 1: Create gym with saas_status='trial'",
+      "Step 2: POST /webhooks/stripe with checkout.session.completed event for SaaS (no 'account' field, metadata contains gymId)",
+      "Step 3: Verify gym's saas_status is updated to 'active'",
+      "Step 4: Verify gym's saas_subscription_id is stored from the Stripe subscription",
+      "Step 5: Verify gym's saas_stripe_customer_id is stored from the Stripe customer",
+      "Step 6: Verify webhook returns 200"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Stripe webhooks handle SaaS subscription lifecycle: payment succeeded, failed, and cancelled",
+    "steps": [
+      "Step 1: Set gym saas_subscription_id to a Stripe subscription ID and saas_status='active'",
+      "Step 2: POST /webhooks/stripe with invoice.payment_succeeded for the SaaS subscription (no 'account' field)",
+      "Step 3: Verify gym saas_status remains 'active'",
+      "Step 4: POST /webhooks/stripe with invoice.payment_failed for the SaaS subscription",
+      "Step 5: Verify gym saas_status is set to 'past_due'",
+      "Step 6: POST /webhooks/stripe with customer.subscription.deleted for the SaaS subscription",
+      "Step 7: Verify gym saas_status is set to 'cancelled'",
+      "Step 8: Verify all webhook calls return 200"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "POST /admin/saas/portal returns a Stripe Customer Portal URL for the gym owner to manage their SaaS subscription",
+    "steps": [
+      "Step 1: Log in as admin with active SaaS subscription and saas_stripe_customer_id set",
+      "Step 2: POST /admin/saas/portal",
+      "Step 3: Verify 200 response with { url: '...' }",
+      "Step 4: Verify URL is a valid Stripe Customer Portal session URL",
+      "Step 5: Verify return_url points back to admin settings page",
+      "Step 6: Verify 400 is returned if gym has no saas_stripe_customer_id"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "SAAS_MONTHLY_PRICE and SAAS_YEARLY_PRICE environment variables configure GymAccess subscription pricing",
+    "steps": [
+      "Step 1: Set SAAS_MONTHLY_PRICE=299 and SAAS_YEARLY_PRICE=2490 in .env",
+      "Step 2: POST /admin/saas/checkout with { plan: 'monthly' }",
+      "Step 3: Verify Stripe session unit_amount = 29900 (299 NOK in \u00f8re)",
+      "Step 4: POST /admin/saas/checkout with { plan: 'yearly' }",
+      "Step 5: Verify Stripe session unit_amount = 249000 (2490 NOK in \u00f8re)",
+      "Step 6: Verify both SAAS_MONTHLY_PRICE and SAAS_YEARLY_PRICE are documented in .env.example"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Admin dashboard shows a warning banner when trial has expired and no active SaaS subscription exists",
+    "steps": [
+      "Step 1: Set gym's trial_ends_at to a past date with saas_status='trial'",
+      "Step 2: Log in as admin",
+      "Step 3: Verify a prominent warning banner is displayed on the dashboard",
+      "Step 4: Verify banner text indicates the trial has expired",
+      "Step 5: Verify banner contains a link or button to subscribe to GymAccess",
+      "Step 6: Set saas_status='past_due' and verify a similar warning is shown",
+      "Step 7: Set saas_status='cancelled' and verify warning is shown",
+      "Step 8: Set saas_status='active' and verify no warning banner is shown",
+      "Step 9: Set saas_status='trial' with trial_ends_at in the future \u2014 verify no expired warning is shown"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Admin billing page shows current SaaS plan, trial status, and subscription management options",
+    "steps": [
+      "Step 1: Log in as admin with saas_status='trial' and trial_ends_at 10 days from now",
+      "Step 2: Navigate to Settings page",
+      "Step 3: Verify 'Plan & Billing' section is present",
+      "Step 4: Verify trial expiry date is displayed",
+      "Step 5: Verify days remaining in trial is shown",
+      "Step 6: Verify 'Subscribe to GymAccess' button is visible with monthly and yearly options",
+      "Step 7: Log in as admin with saas_status='active' and subscription",
+      "Step 8: Verify current plan (monthly/yearly) is displayed",
+      "Step 9: Verify 'Manage Subscription' button is present and calls POST /admin/saas/portal",
+      "Step 10: Log in as admin with saas_status='past_due'",
+      "Step 11: Verify payment issue warning is shown with re-subscribe option"
+    ],
+    "passes": true
+  },
+  {
+    "category": "style",
+    "description": "Stripe Connect section in admin Settings has clear visual design with status indicators",
+    "steps": [
+      "Step 1: Log in as admin",
+      "Step 2: Navigate to Settings page",
+      "Step 3: Verify Stripe Connect section is visually distinct (e.g., in its own card)",
+      "Step 4: Verify connection status uses color-coded badge (red=not connected, yellow=pending, green=active)",
+      "Step 5: Verify 'Connect with Stripe' button has recognizable payment/trust styling",
+      "Step 6: Verify section includes a brief explanation of why Stripe Connect is needed (to receive member payments)",
+      "Step 7: Verify connected state shows the connected account ID or a masked version"
+    ],
+    "passes": true
+  },
+  {
+    "category": "style",
+    "description": "Plan & Billing section in admin Settings has clear subscription management UI with trial countdown",
+    "steps": [
+      "Step 1: Log in as admin in trial period",
+      "Step 2: Navigate to Settings page",
+      "Step 3: Verify trial countdown or expiry date is visually prominent",
+      "Step 4: Verify pricing for monthly and yearly GymAccess plans is clearly shown",
+      "Step 5: Verify Subscribe CTA button is styled as a primary action",
+      "Step 6: Log in as admin with active subscription",
+      "Step 7: Verify plan name, price, and next billing date are clearly presented",
+      "Step 8: Verify 'Manage Subscription' button is clearly labeled and accessible"
+    ],
+    "passes": true
   }
 ]

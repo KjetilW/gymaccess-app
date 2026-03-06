@@ -11,6 +11,12 @@ interface GymSettings {
   membership_price: number;
   billing_interval: string;
   access_type: string;
+  stripe_connect_account_id: string | null;
+  stripe_connect_status: string;
+  saas_status: string;
+  saas_subscription_id: string | null;
+  saas_stripe_customer_id: string | null;
+  trial_ends_at: string | null;
 }
 
 interface NotificationTemplate {
@@ -49,6 +55,37 @@ const TEMPLATE_LABELS: Record<string, string> = {
   cancellation: 'Cancellation notice',
 };
 
+function ConnectStatusBadge({ status }: { status: string }) {
+  if (status === 'active') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-forest-100 text-forest-800">
+        <span className="w-2 h-2 rounded-full bg-forest-600 inline-block" />
+        Connected
+      </span>
+    );
+  }
+  if (status === 'pending') {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+        <span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" />
+        Pending
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+      <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+      Not Connected
+    </span>
+  );
+}
+
+function daysUntil(dateStr: string): number {
+  const now = new Date();
+  const target = new Date(dateStr);
+  return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState<GymSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,6 +107,15 @@ export default function SettingsPage() {
   const [savedTemplate, setSavedTemplate] = useState(false);
   const [templateError, setTemplateError] = useState('');
 
+  // Stripe Connect state
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [connectError, setConnectError] = useState('');
+
+  // SaaS checkout state
+  const [saasLoading, setSaasLoading] = useState(false);
+  const [saasError, setSaasError] = useState('');
+  const [portalLoading, setPortalLoading] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     Promise.all([
@@ -82,10 +128,9 @@ export default function SettingsPage() {
       setAccessType(gymData.access_type || 'shared_pin');
 
       if (Array.isArray(templateData) && templateData.length > 0) {
-        // Merge saved templates with defaults
         const merged = DEFAULT_TEMPLATES.map(def => {
-          const saved = templateData.find((t: NotificationTemplate) => t.type === def.type);
-          return saved || def;
+          const savedTmpl = templateData.find((t: NotificationTemplate) => t.type === def.type);
+          return savedTmpl || def;
         });
         setTemplates(merged);
       }
@@ -155,6 +200,64 @@ export default function SettingsPage() {
     }
   };
 
+  const handleStripeConnect = async () => {
+    setConnectLoading(true);
+    setConnectError('');
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_URL}/admin/stripe/connect`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to connect');
+      if (data.url) window.location.href = data.url;
+    } catch (err: any) {
+      setConnectError(err.message || 'Failed to start Stripe Connect setup.');
+    } finally {
+      setConnectLoading(false);
+    }
+  };
+
+  const handleSaasCheckout = async (plan: 'monthly' | 'yearly') => {
+    setSaasLoading(true);
+    setSaasError('');
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_URL}/admin/saas/checkout`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create checkout');
+      if (data.url) window.location.href = data.url;
+    } catch (err: any) {
+      setSaasError(err.message || 'Failed to start subscription checkout.');
+    } finally {
+      setSaasLoading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    setSaasError('');
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_URL}/admin/saas/portal`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to open portal');
+      if (data.url) window.location.href = data.url;
+    } catch (err: any) {
+      setSaasError(err.message || 'Failed to open subscription management.');
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-16">
@@ -162,6 +265,13 @@ export default function SettingsPage() {
       </div>
     );
   }
+
+  const connectStatus = settings?.stripe_connect_status || 'not_connected';
+  const connectAccountId = settings?.stripe_connect_account_id;
+  const saasStatus = settings?.saas_status || 'trial';
+  const trialEndsAt = settings?.trial_ends_at;
+  const trialDaysLeft = trialEndsAt ? daysUntil(trialEndsAt) : null;
+  const trialExpired = trialDaysLeft !== null && trialDaysLeft <= 0;
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
@@ -266,8 +376,226 @@ export default function SettingsPage() {
         </div>
       </form>
 
-      {/* Notification Templates */}
+      {/* Stripe Connect Section */}
       <div className="mt-8">
+        <div className="bg-white rounded-2xl border border-warm-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600">Stripe Connect</h2>
+            <ConnectStatusBadge status={connectStatus} />
+          </div>
+
+          <p className="text-sm text-gray-500 mb-5">
+            Connect your Stripe account to receive member payments directly. GymAccess uses Stripe Connect to route member subscription payments to your gym's bank account.
+          </p>
+
+          {connectStatus === 'not_connected' && (
+            <>
+              <button
+                type="button"
+                onClick={handleStripeConnect}
+                disabled={connectLoading}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#635BFF] text-white rounded-xl font-semibold text-sm hover:bg-[#5248d4] disabled:opacity-50 transition-colors"
+              >
+                {connectLoading ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+                  </svg>
+                )}
+                Connect with Stripe
+              </button>
+              {connectError && <p className="mt-2 text-xs text-red-600">{connectError}</p>}
+            </>
+          )}
+
+          {connectStatus === 'pending' && (
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
+                <svg className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p className="text-xs text-yellow-800">Pending — complete your Stripe onboarding to start accepting member payments.</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleStripeConnect}
+                disabled={connectLoading}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#635BFF] text-white rounded-xl font-semibold text-sm hover:bg-[#5248d4] disabled:opacity-50 transition-colors"
+              >
+                {connectLoading ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : null}
+                Continue Stripe Onboarding
+              </button>
+              {connectError && <p className="mt-2 text-xs text-red-600">{connectError}</p>}
+            </div>
+          )}
+
+          {connectStatus === 'active' && (
+            <div className="flex items-start gap-3 p-3 bg-forest-50 border border-forest-200 rounded-xl">
+              <svg className="w-4 h-4 text-forest-700 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="text-xs font-semibold text-forest-800">Stripe account connected</p>
+                {connectAccountId && (
+                  <p className="text-xs text-forest-600 mt-0.5 font-mono">
+                    {connectAccountId.slice(0, 8)}…{connectAccountId.slice(-4)}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Plan & Billing Section */}
+      <div className="mt-6">
+        <div className="bg-white rounded-2xl border border-warm-200 p-6">
+          <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600 mb-4">Plan &amp; Billing</h2>
+
+          {saasStatus === 'trial' && (
+            <div className="space-y-4">
+              {trialDaysLeft !== null && !trialExpired && (
+                <div className="flex items-center gap-3 p-4 bg-forest-50 border border-forest-200 rounded-xl">
+                  <div className="text-center min-w-[3.5rem]">
+                    <div className="font-display font-bold text-2xl text-forest-900">{trialDaysLeft}</div>
+                    <div className="text-xs text-forest-600">days left</div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-forest-800">Free trial active</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Trial expires {trialEndsAt ? new Date(trialEndsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {trialExpired && (
+                <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <svg className="w-5 h-5 text-red-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <p className="text-sm text-red-800 font-medium">Your free trial has expired. Subscribe to continue using GymAccess.</p>
+                </div>
+              )}
+
+              <p className="text-sm text-gray-600">Subscribe to GymAccess to continue managing your gym after the trial.</p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="border border-warm-200 rounded-xl p-4">
+                  <div className="font-display font-bold text-xl text-forest-900">NOK 299</div>
+                  <div className="text-xs text-gray-500 mb-3">/month</div>
+                  <button
+                    type="button"
+                    onClick={() => handleSaasCheckout('monthly')}
+                    disabled={saasLoading}
+                    className="w-full py-2 bg-forest-900 text-white rounded-lg text-sm font-semibold hover:bg-forest-800 disabled:opacity-50 transition-colors"
+                  >
+                    {saasLoading ? 'Loading…' : 'Subscribe monthly'}
+                  </button>
+                </div>
+                <div className="border border-forest-700 rounded-xl p-4 ring-1 ring-forest-700 relative">
+                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                    <span className="bg-forest-700 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">Save 31%</span>
+                  </div>
+                  <div className="font-display font-bold text-xl text-forest-900">NOK 2,490</div>
+                  <div className="text-xs text-gray-500 mb-3">/year</div>
+                  <button
+                    type="button"
+                    onClick={() => handleSaasCheckout('yearly')}
+                    disabled={saasLoading}
+                    className="w-full py-2 bg-forest-900 text-white rounded-lg text-sm font-semibold hover:bg-forest-800 disabled:opacity-50 transition-colors"
+                  >
+                    {saasLoading ? 'Loading…' : 'Subscribe yearly'}
+                  </button>
+                </div>
+              </div>
+              {saasError && <p className="text-xs text-red-600">{saasError}</p>}
+            </div>
+          )}
+
+          {saasStatus === 'active' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-4 bg-forest-50 border border-forest-200 rounded-xl">
+                <svg className="w-5 h-5 text-forest-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-forest-800">GymAccess subscription active</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Your gym is on an active plan.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+                className="px-5 py-2.5 border border-forest-700 text-forest-800 rounded-xl text-sm font-semibold hover:bg-forest-50 disabled:opacity-50 transition-colors"
+              >
+                {portalLoading ? 'Opening…' : 'Manage Subscription'}
+              </button>
+              {saasError && <p className="text-xs text-red-600">{saasError}</p>}
+            </div>
+          )}
+
+          {saasStatus === 'past_due' && (
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+                <svg className="w-5 h-5 text-orange-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-orange-800">Payment issue with your GymAccess subscription</p>
+                  <p className="text-xs text-orange-700 mt-0.5">Please update your payment method to avoid service interruption.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+                className="px-5 py-2.5 bg-orange-600 text-white rounded-xl text-sm font-semibold hover:bg-orange-700 disabled:opacity-50 transition-colors"
+              >
+                {portalLoading ? 'Opening…' : 'Update Payment Method'}
+              </button>
+              {saasError && <p className="text-xs text-red-600">{saasError}</p>}
+            </div>
+          )}
+
+          {saasStatus === 'cancelled' && (
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                <svg className="w-5 h-5 text-gray-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                <p className="text-sm text-gray-700">Your GymAccess subscription has been cancelled. Re-subscribe to continue using the platform.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleSaasCheckout('monthly')}
+                  disabled={saasLoading}
+                  className="py-2.5 border border-forest-700 text-forest-800 rounded-xl text-sm font-semibold hover:bg-forest-50 disabled:opacity-50 transition-colors"
+                >
+                  Monthly — NOK 299
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaasCheckout('yearly')}
+                  disabled={saasLoading}
+                  className="py-2.5 bg-forest-900 text-white rounded-xl text-sm font-semibold hover:bg-forest-800 disabled:opacity-50 transition-colors"
+                >
+                  Yearly — NOK 2,490
+                </button>
+              </div>
+              {saasError && <p className="text-xs text-red-600">{saasError}</p>}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Notification Templates */}
+      <div className="mt-6">
         <div className="bg-white rounded-2xl border border-warm-200 p-6">
           <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600 mb-5">Notification Templates</h2>
           <p className="text-xs text-gray-500 mb-4">

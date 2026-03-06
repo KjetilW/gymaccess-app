@@ -93,7 +93,8 @@ subscriptionRoutes.post('/checkout', async (req, res) => {
     }
 
     const result = await pool.query(
-      `SELECT m.*, g.name as gym_name, g.membership_price, g.billing_interval, g.gym_id as gid
+      `SELECT m.*, g.name as gym_name, g.membership_price, g.billing_interval, g.gym_id as gid,
+              g.stripe_connect_account_id, g.stripe_connect_status
        FROM members m JOIN gyms g ON m.gym_id = g.gym_id WHERE m.member_id = $1`,
       [memberId]
     );
@@ -102,16 +103,29 @@ subscriptionRoutes.post('/checkout', async (req, res) => {
     }
 
     const member = result.rows[0];
-    const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-    const session = await stripe.checkout.sessions.create({
+    // Require active Stripe Connect account
+    if (!member.stripe_connect_account_id || member.stripe_connect_status !== 'active') {
+      return res.status(400).json({
+        error: 'The gym owner must connect their Stripe account before accepting payments. Please contact your gym administrator.',
+      });
+    }
+
+    const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const unitAmount = Math.round(member.membership_price) * 100;
+    const platformFeePercent = parseFloat(process.env.PLATFORM_FEE_PERCENT || '0');
+    const applicationFeeAmount = platformFeePercent > 0
+      ? Math.round(unitAmount * platformFeePercent / 100)
+      : 0;
+
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ['card'],
       mode: 'subscription',
       line_items: [{
         price_data: {
           currency: 'nok',
           product_data: { name: `${member.gym_name} Membership` },
-          unit_amount: Math.round(member.membership_price) * 100,
+          unit_amount: unitAmount,
           recurring: {
             interval: member.billing_interval === 'yearly' ? 'year' : 'month',
           },
@@ -122,7 +136,13 @@ subscriptionRoutes.post('/checkout', async (req, res) => {
       metadata: { memberId },
       success_url: `${frontendUrl}/join/${member.gid}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/join/${member.gid}/payment?memberId=${memberId}`,
-    });
+      subscription_data: {
+        transfer_data: { destination: member.stripe_connect_account_id },
+        ...(applicationFeeAmount > 0 && { application_fee_percent: platformFeePercent }),
+      },
+    };
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     res.json({ url: session.url, sessionId: session.id });
   } catch (err) {

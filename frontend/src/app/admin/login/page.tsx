@@ -48,7 +48,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-block font-display font-extrabold text-3xl text-forest-900">
-            OpenGym
+            GymAccess
           </Link>
           <p className="text-gray-500 mt-2">Sign in to your gym admin</p>
         </div>

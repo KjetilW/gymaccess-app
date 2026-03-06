@@ -91,7 +91,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex">
       {/* Brand panel */}
       <div className="hidden lg:flex flex-col justify-between w-5/12 bg-forest-900 p-12">
-        <Link href="/" className="font-display font-bold text-2xl text-white">OpenGym</Link>
+        <Link href="/" className="font-display font-bold text-2xl text-white">GymAccess</Link>
 
         <div>
           <h2 className="font-display font-extrabold text-4xl text-white leading-tight mb-5">
@@ -117,14 +117,14 @@ export default function RegisterPage() {
           </ul>
         </div>
 
-        <p className="text-forest-500 text-sm">&copy; 2026 OpenGym &mdash; Built for community gyms</p>
+        <p className="text-forest-500 text-sm">&copy; 2026 GymAccess &mdash; Built for community gyms</p>
       </div>
 
       {/* Form panel */}
       <div className="flex-1 flex flex-col bg-warm-50 overflow-y-auto">
         <div className="flex-1 flex flex-col max-w-xl w-full mx-auto px-8 py-12">
           <div className="lg:hidden mb-8">
-            <Link href="/" className="font-display font-bold text-2xl text-forest-900">OpenGym</Link>
+            <Link href="/" className="font-display font-bold text-2xl text-forest-900">GymAccess</Link>
           </div>
 
           <h1 className="font-display font-extrabold text-3xl text-forest-900 mb-1">

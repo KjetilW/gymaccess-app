@@ -7,7 +7,7 @@ export default function SuccessPage() {
     <div className="min-h-screen bg-warm-50">
       <header className="bg-forest-900 text-white px-6 py-4">
         <Link href="/" className="font-display font-bold text-lg text-white hover:text-forest-200 transition-colors">
-          OpenGym
+          GymAccess
         </Link>
       </header>
 

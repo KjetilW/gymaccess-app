@@ -17,7 +17,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'OpenGym — Gym Membership Management',
+  title: 'GymAccess — Gym Membership Management',
   description: 'Automated membership management for small community gyms. Signup, payments, and access control in one place.',
 };
 

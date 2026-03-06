@@ -5,7 +5,7 @@ export default function Home() {
     <div className="min-h-screen bg-warm-50">
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-6 max-w-6xl mx-auto">
-        <span className="font-display font-bold text-2xl text-forest-900">OpenGym</span>
+        <span className="font-display font-bold text-2xl text-forest-900">GymAccess</span>
         <div className="flex items-center gap-4">
           <Link href="/admin/login" className="text-forest-700 font-medium hover:text-forest-900 transition-colors text-sm">
             Sign in
@@ -140,7 +140,7 @@ export default function Home() {
       <footer className="border-t border-warm-200 bg-white">
         <div className="max-w-6xl mx-auto px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="font-display font-bold text-lg text-forest-900">OpenGym</span>
+            <span className="font-display font-bold text-lg text-forest-900">GymAccess</span>
             <span className="text-warm-300">·</span>
             <span className="text-sm text-forest-600">Built for community gyms</span>
           </div>
@@ -149,7 +149,7 @@ export default function Home() {
             <Link href="/admin/login" className="hover:text-forest-900 transition-colors">Sign in</Link>
             <a href="mailto:support@opengym.app" className="hover:text-forest-900 transition-colors">Support</a>
           </nav>
-          <p className="text-xs text-gray-400">© {new Date().getFullYear()} OpenGym. All rights reserved.</p>
+          <p className="text-xs text-gray-400">© {new Date().getFullYear()} GymAccess. All rights reserved.</p>
         </div>
       </footer>
     </div>

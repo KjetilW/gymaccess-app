@@ -2,7 +2,7 @@
 set -euo pipefail
 
 echo "================================================"
-echo "  GymAccess (OpenGym) - Development Setup"
+echo "  GymAccess (GymAccess) - Development Setup"
 echo "================================================"
 echo ""
 

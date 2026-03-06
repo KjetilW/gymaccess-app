@@ -5,7 +5,7 @@
     "steps": [
       "Step 1: Navigate to http://localhost:3000",
       "Step 2: Verify page loads without errors",
-      "Step 3: Verify product name 'OpenGym' or 'GymAccess' is displayed",
+      "Step 3: Verify product name 'GymAccess' is displayed",
       "Step 4: Verify a call-to-action for gym owners is present"
     ],
     "passes": true

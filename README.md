@@ -1,4 +1,4 @@
-# GymAccess (OpenGym)
+# GymAccess (GymAccess)
 
 Automated membership management SaaS for small community gyms. Handles signup, recurring payments, access control (PIN codes), and membership lifecycle.
 

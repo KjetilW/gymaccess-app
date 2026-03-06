@@ -3,7 +3,7 @@
 ## 1. Product Overview
 
 **Product name (gymaccess.app):**  
-OpenGym
+GymAccess
 
 **Purpose**
 
@@ -36,7 +36,7 @@ This leads to:
 - unpaid members continuing to use facilities
 - poor scalability
 
-OpenGym automates these processes.
+GymAccess automates these processes.
 
 ---
 

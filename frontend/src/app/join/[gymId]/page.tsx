@@ -107,7 +107,7 @@ export default function JoinPage() {
     <div className="min-h-screen bg-warm-50">
       <header className="bg-forest-900 text-white px-6 py-4">
         <Link href="/" className="font-display font-bold text-lg text-white hover:text-forest-200 transition-colors">
-          OpenGym
+          GymAccess
         </Link>
       </header>
 
@@ -197,9 +197,9 @@ export default function JoinPage() {
 
       <footer className="border-t border-warm-200 bg-white mt-8">
         <div className="max-w-lg mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
-          <span className="font-display font-semibold text-forest-800">OpenGym</span>
+          <span className="font-display font-semibold text-forest-800">GymAccess</span>
           <span>Secure payments by Stripe · Member data is encrypted</span>
-          <span>© {new Date().getFullYear()} OpenGym</span>
+          <span>© {new Date().getFullYear()} GymAccess</span>
         </div>
       </footer>
     </div>

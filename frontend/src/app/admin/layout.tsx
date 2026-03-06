@@ -62,7 +62,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <header className="bg-forest-900 text-white px-6 py-0 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3 py-4">
           <Link href="/" className="font-display font-bold text-lg text-white hover:text-forest-200 transition-colors">
-            OpenGym
+            GymAccess
           </Link>
           {gymName && (
             <>

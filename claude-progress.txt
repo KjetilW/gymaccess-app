@@ -402,3 +402,37 @@ Most require real Stripe API keys:
 - Frontend verified with Chrome browser extension (all 3 Connect states, all 4 SaaS states, banner states)
 
 ### Current: 181/185 (97.8%) COMPLETE
+
+## Session 10 - Seam/igloohome Smart Lock Integration (2026-03-06)
+
+### Completed
+- Implemented full Seam/igloohome smart lock integration (15 new features, all passing)
+- Created api/src/utils/seam.ts: Seam SDK client with full mock mode support (SEAM_MOCK=true)
+  - isSeamConfigured(), isSeamMockMode(), getSeamClient()
+  - createConnectWebview(), getConnectWebviewStatus()
+  - listDevices(), createOfflineAccessCode(), deleteAccessCode()
+  - Mock mode: generates realistic 7–9 digit algoPINs without real Seam API
+- DB migrations: gyms.seam_connected_account_id, gyms.seam_device_id, 
+  access_codes.source, access_codes.provider_code_id
+- Rewrote activateMemberAccess() to create time-bound igloohome algoPIN via Seam when configured
+  - Graceful fallback to internal PIN if Seam fails
+  - Welcome email includes Keybox 3 instructions and PIN when igloohome active
+- New admin API routes:
+  - POST /admin/igloohome/connect → Seam Connect Webview flow
+  - GET /admin/igloohome/status → saves connected_account_id after webview completes
+  - GET /admin/igloohome/devices → lists igloohome keyboxes
+  - PUT /admin/settings/igloohome → saves selected device_id
+  - DELETE /admin/igloohome/connect → clears Seam account + device
+  - POST /admin/members/:id/igloohome/regenerate → delete + recreate algoPIN
+- Webhook updates: revokeAccessCodes() helper deletes Seam code before DB revoke
+  - invoice.payment_failed: revokes Seam code
+  - customer.subscription.deleted: revokes Seam code
+  - invoice.payment_succeeded: refreshes algoPIN for next billing period
+- Settings page: "Smart Lock (igloohome via Seam)" section with Connect/Disconnect flow,
+  device selector, status badges, useSearchParams for webview redirect detection
+- Member detail page: igloohome algoPIN section with large PIN display, Copy PIN,
+  Regenerate PIN with spinner, "Valid until [date]" when subscription_end_date set
+- Fixed member detail query to use subquery for latest subscription (ORDER BY created_at DESC)
+- Fixed mock Connect Webview URL construction (proper ? vs & separator)
+
+### Current: 200/200 (100%) COMPLETE

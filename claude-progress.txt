@@ -315,3 +315,43 @@ Most require real Stripe API keys:
 - ACCESS_CODE_ENCRYPTION_KEY is set
 - Webhook verification: real secret → verify sig; placeholder → skip
 - Worker: processes notifications every 5s, checks expired subscriptions every 60s
+
+---
+
+## Session 8 - Coding Agent (2026-03-06)
+
+### Completed (166/166 passing — ALL TESTS PASS!)
+
+#### Stripe Checkout Implementation
+- Added `POST /subscriptions/checkout` to subscriptions.ts using Stripe SDK
+- Creates checkout session with inline price_data (currency: nok, recurring monthly/yearly)
+- Member email pre-filled, memberId in session metadata
+- Success URL: /join/[gymId]/success, Cancel URL: /join/[gymId]/payment
+- Updated payment page: auto-calls checkout API and redirects to Stripe URL
+- Created /join/[gymId]/success page with green checkmark and "Check your email" message
+- Verified: real Stripe checkout loads with NOK 349.00/month for Nordfjord Gym
+- Verified: yearly gym creates `interval: year` checkout (confirmed via Stripe API)
+
+#### Webhook State Machine Verified
+- All 7 state transitions tested with HMAC-SHA256 signed webhook simulation:
+  - checkout.session.completed: pending → active + access code + welcome email ✓
+  - invoice.payment_failed: active → past_due + access code revoked ✓
+  - invoice.payment_succeeded: past_due → active + access code restored ✓
+  - customer.subscription.deleted: → cancelled + access code revoked ✓
+- Webhook signature: valid sig → 200, invalid sig → 400 ✓
+- provider_subscription_id stored in subscriptions table ✓
+
+#### HTTPS Production Configuration
+- Created infrastructure/nginx/nginx.conf with:
+  - HTTP → HTTPS redirect (301)
+  - TLS termination with ssl_certificate/ssl_certificate_key
+  - TLS 1.2/1.3 only, strong ciphers
+  - HSTS header
+  - Proxy to frontend:3000, api:8080, webhooks path
+
+#### Payments Dashboard Verified
+- NOK 2,443 monthly revenue (7 active × 349) ✓
+- 7 active subscriptions, 2 past_due, 7 cancelled ✓
+- Numbers match DB member status counts exactly ✓
+
+### Final Status: 166/166 (100%) COMPLETE

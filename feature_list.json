@@ -331,7 +331,7 @@
       "Step 2: Verify receipt notification is queued/sent",
       "Step 3: Verify notification contains payment amount"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -341,7 +341,7 @@
       "Step 2: Verify payment reminder notification is queued/sent",
       "Step 3: Verify notification mentions payment issue"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1049,7 +1049,7 @@
       "Step 2: Verify request is rejected with 400/401",
       "Step 3: Verify no state changes occur from rejected webhook"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1845,7 +1845,7 @@
       "Step 9: Verify API returns 200 (not error) for duplicate webhook",
       "Step 10: Verify no duplicate database entries"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1899,7 +1899,7 @@
       "Step 10: Verify Member A's PIN is permanently revoked",
       "Step 11: Verify no valid access code exists for Member A"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1936,7 +1936,7 @@
       "Step 10: Verify cancellation notification mentions access expiration",
       "Step 11: Verify all notifications are sent to correct email address"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

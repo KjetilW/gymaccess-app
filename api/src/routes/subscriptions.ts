@@ -2,6 +2,11 @@ import { Router } from 'express';
 import { pool } from '../db';
 import crypto from 'crypto';
 import { encryptCode, decryptCode, isEncrypted } from '../utils/crypto';
+import Stripe from 'stripe';
+
+const stripe = process.env.STRIPE_API_KEY
+  ? new Stripe(process.env.STRIPE_API_KEY, { apiVersion: '2024-06-20' as any })
+  : null;
 
 export const subscriptionRoutes = Router();
 
@@ -74,6 +79,57 @@ export async function activateMemberAccess(memberId: string): Promise<string | n
 
   return code;
 }
+
+// Create Stripe checkout session for a member
+subscriptionRoutes.post('/checkout', async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe not configured' });
+    }
+
+    const { memberId } = req.body;
+    if (!memberId) {
+      return res.status(400).json({ error: 'memberId is required' });
+    }
+
+    const result = await pool.query(
+      `SELECT m.*, g.name as gym_name, g.membership_price, g.billing_interval, g.gym_id as gid
+       FROM members m JOIN gyms g ON m.gym_id = g.gym_id WHERE m.member_id = $1`,
+      [memberId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+
+    const member = result.rows[0];
+    const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      line_items: [{
+        price_data: {
+          currency: 'nok',
+          product_data: { name: `${member.gym_name} Membership` },
+          unit_amount: Math.round(member.membership_price) * 100,
+          recurring: {
+            interval: member.billing_interval === 'yearly' ? 'year' : 'month',
+          },
+        },
+        quantity: 1,
+      }],
+      customer_email: member.email,
+      metadata: { memberId },
+      success_url: `${frontendUrl}/join/${member.gid}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${frontendUrl}/join/${member.gid}/payment?memberId=${memberId}`,
+    });
+
+    res.json({ url: session.url, sessionId: session.id });
+  } catch (err) {
+    console.error('Checkout error:', err);
+    res.status(500).json({ error: 'Failed to create checkout session' });
+  }
+});
 
 // Activate subscription (called internally or via webhook)
 subscriptionRoutes.post('/activate', async (req, res) => {

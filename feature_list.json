@@ -151,7 +151,7 @@
       "Step 5: Verify the checkout session has correct price amount",
       "Step 6: Verify the checkout session has correct billing interval"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -165,7 +165,7 @@
       "Step 6: Verify access code is generated for the member",
       "Step 7: Verify welcome notification is triggered"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -176,7 +176,7 @@
       "Step 3: Send POST with invalid signature",
       "Step 4: Verify 400 or 401 response"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -187,7 +187,7 @@
       "Step 3: Verify member status changes to 'PastDue'",
       "Step 4: Verify payment failure notification is triggered"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -199,7 +199,7 @@
       "Step 4: Verify access code is revoked",
       "Step 5: Verify cancellation notification is triggered"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -210,7 +210,7 @@
       "Step 3: Verify member status remains 'Active'",
       "Step 4: Verify payment receipt notification is triggered"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -221,7 +221,7 @@
       "Step 3: Verify member status changes back to 'Active'",
       "Step 4: Verify access code is regenerated or reactivated"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -233,7 +233,7 @@
       "Step 4: Cancel subscription via webhook, verify status is 'Cancelled'",
       "Step 5: Verify that invalid transitions are rejected (e.g., Pending->Cancelled directly)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -799,7 +799,7 @@
       "Step 10: Verify member appears in admin members list as Active",
       "Step 11: Verify payment appears in admin payments section"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -834,7 +834,7 @@
       "Step 10: Verify all state transitions logged",
       "Step 11: Verify notifications sent for each transition"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -983,7 +983,7 @@
       "Step 3: Verify Stripe checkout session has price 499",
       "Step 4: Verify billing interval is monthly"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -993,7 +993,7 @@
       "Step 2: Initiate member signup",
       "Step 3: Verify Stripe checkout session has yearly billing interval"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1039,7 +1039,7 @@
       "Step 2: Verify HTTP to HTTPS redirect is configured",
       "Step 3: Verify TLS termination configuration exists"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1156,7 +1156,7 @@
       "Step 3: Verify instructions include the access code",
       "Step 4: Verify instructions include gym location"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1166,7 +1166,7 @@
       "Step 2: Verify Stripe checkout session is configured to accept card payments",
       "Step 3: Verify payment_method_types includes card (which enables Apple/Google Pay)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1235,7 +1235,7 @@
       "Step 2: Verify subscription record has provider set to 'stripe'",
       "Step 3: Verify provider_subscription_id matches Stripe's subscription ID"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1751,7 +1751,7 @@
       "Step 11: Verify payment success notification is sent",
       "Step 12: Verify admin dashboard reflects all state changes"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1811,7 +1811,7 @@
       "Step 13: Verify access code is generated",
       "Step 14: Verify welcome email notification contains access code"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1828,7 +1828,7 @@
       "Step 9: Verify failed payment count is 1",
       "Step 10: Verify cancelled count is tracked"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

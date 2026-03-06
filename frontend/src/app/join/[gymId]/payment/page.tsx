@@ -6,26 +6,40 @@ import Link from 'next/link';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-interface GymInfo {
-  name: string;
-  membership_price: number;
-  billing_interval: string;
-}
-
 export default function PaymentPage() {
   const { gymId } = useParams<{ gymId: string }>();
   const searchParams = useSearchParams();
   const memberId = searchParams.get('memberId');
 
-  const [gym, setGym] = useState<GymInfo | null>(null);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!gymId) return;
-    fetch(`${API_URL}/gyms/${gymId}`)
+    if (!memberId) {
+      setError('Missing member information. Please sign up again.');
+      setLoading(false);
+      return;
+    }
+
+    fetch(`${API_URL}/subscriptions/checkout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberId }),
+    })
       .then(r => r.json())
-      .then(setGym)
-      .catch(() => {});
-  }, [gymId]);
+      .then(data => {
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          setError(data.error || 'Failed to create checkout session');
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        setError('Could not connect to payment service. Please try again.');
+        setLoading(false);
+      });
+  }, [memberId]);
 
   return (
     <div className="min-h-screen bg-warm-50">
@@ -37,38 +51,26 @@ export default function PaymentPage() {
 
       <main className="max-w-lg mx-auto px-6 py-12 text-center">
         <div className="bg-white rounded-2xl border border-warm-200 p-8">
-          <div className="w-16 h-16 bg-forest-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-forest-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-            </svg>
-          </div>
-
-          <h1 className="font-display font-bold text-2xl text-forest-900 mb-2">
-            {gym ? `Join ${gym.name}` : 'Complete your membership'}
-          </h1>
-
-          {gym && (
-            <p className="text-gray-500 text-sm mb-6">
-              NOK {gym.membership_price.toLocaleString()} / {gym.billing_interval === 'yearly' ? 'year' : 'month'}
-            </p>
+          {loading ? (
+            <>
+              <div className="w-10 h-10 border-2 border-forest-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-forest-800 font-medium">Redirecting to secure payment…</p>
+              <p className="text-gray-400 text-sm mt-2">Powered by Stripe</p>
+            </>
+          ) : (
+            <>
+              <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+              </div>
+              <h1 className="font-display font-bold text-xl text-forest-900 mb-2">Payment setup failed</h1>
+              <p className="text-gray-500 text-sm mb-6">{error}</p>
+              <Link href={`/join/${gymId}`} className="text-sm text-forest-700 hover:underline font-medium">
+                Back to signup
+              </Link>
+            </>
           )}
-
-          <div className="bg-warm-50 rounded-xl p-4 mb-6 text-left">
-            <p className="text-sm text-gray-600">
-              Payment processing via Stripe is coming soon. Your membership application has been received and your account is pending activation.
-            </p>
-          </div>
-
-          {memberId && (
-            <p className="text-xs text-gray-400 font-mono mb-6">Member ID: {memberId}</p>
-          )}
-
-          <Link
-            href={`/join/${gymId}`}
-            className="text-sm text-forest-700 hover:underline font-medium"
-          >
-            Back to signup
-          </Link>
         </div>
       </main>
     </div>

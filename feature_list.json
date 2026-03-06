@@ -273,7 +273,7 @@
       "Step 5: Verify access code has valid_from set to now",
       "Step 6: Verify access code is stored in the database"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -321,7 +321,7 @@
       "Step 4: Verify email contains access code",
       "Step 5: Verify email is sent to the member's email address"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -816,7 +816,7 @@
       "Step 9: Verify member 2's PIN is still active",
       "Step 10: Verify notifications sent at each step"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1029,7 +1029,7 @@
       "Step 3: Verify member status transitions to Expired",
       "Step 4: Verify access code is revoked"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -1204,7 +1204,7 @@
       "Step 3: Verify all 10 members have unique PINs",
       "Step 4: Verify no duplicate PINs exist"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",

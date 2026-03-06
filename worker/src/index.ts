@@ -64,17 +64,49 @@ async function processNotifications() {
   }
 }
 
+async function processExpiredSubscriptions() {
+  try {
+    // Find active members whose subscriptions have ended (end_date < NOW())
+    const result = await pool.query(
+      `UPDATE members SET status = 'expired', updated_at = NOW()
+       WHERE member_id IN (
+         SELECT DISTINCT s.member_id
+         FROM subscriptions s
+         JOIN members m ON m.member_id = s.member_id
+         WHERE s.end_date < NOW()
+           AND s.status = 'active'
+           AND m.status = 'active'
+       )
+       RETURNING member_id`
+    );
+    if (result.rowCount && result.rowCount > 0) {
+      console.log(`Expired ${result.rowCount} subscriptions`);
+      for (const row of result.rows) {
+        await pool.query(
+          "UPDATE access_codes SET valid_to = NOW() WHERE member_id = $1 AND valid_to IS NULL",
+          [row.member_id]
+        );
+      }
+    }
+  } catch (err) {
+    console.error('Error processing expired subscriptions:', err);
+  }
+}
+
 // Poll for pending notifications every 5 seconds
 const POLL_INTERVAL = 5000;
+const EXPIRY_CHECK_INTERVAL = 60 * 1000; // Check every minute
 
 async function start() {
   console.log('GymAccess Worker started');
   console.log(`Polling for notifications every ${POLL_INTERVAL / 1000}s`);
 
   setInterval(processNotifications, POLL_INTERVAL);
+  setInterval(processExpiredSubscriptions, EXPIRY_CHECK_INTERVAL);
 
   // Process immediately on start
   await processNotifications();
+  await processExpiredSubscriptions();
 }
 
 start().catch((err) => {

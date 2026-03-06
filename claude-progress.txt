@@ -221,3 +221,97 @@
 3. Feature 26: Access code encryption
 4. Feature 32: DB cascade on gym deletion
 5. Verify more style features (110-145 range)
+
+---
+
+## Session 7 - Coding Agent (2026-03-06)
+
+### Completed (147/166 passing, up from 131)
+
+#### Notification Template Editing (feature #43)
+- Added `notification_templates` table in DB migration
+- Added GET/PUT /admin/notification-templates endpoints in admin.ts
+- Updated Settings page with full notification templates editor (4 types)
+- Templates: welcome, payment_receipt, payment_failed, cancellation
+- Verified via Playwright: edit subject/body, save, confirmed persisted in DB
+
+#### Access Code Encryption (feature #88)
+- Created `api/src/utils/crypto.ts` with AES-256-CBC encrypt/decrypt
+- All new access codes stored encrypted as `ivHex:ciphertextHex`
+- Admin API decrypts on read; backward compatible with pre-existing plaintext codes
+- Added `ACCESS_CODE_ENCRYPTION_KEY` to .env
+- Verified: DB shows encrypted value, API returns plaintext, decryption confirmed
+
+#### DB Cascade Deletes + Gym Deletion (feature #106)
+- Added ON DELETE CASCADE to: access_codes, subscriptions, notifications → members
+- Added ON DELETE CASCADE to: members, admins, notification_templates → gyms
+- Added ON DELETE SET NULL to: gyms.admin_user → admins
+- Added DELETE /admin/gym endpoint with circular FK handling
+- Tested: gym with members/subscriptions deletes cleanly
+
+#### Auto-migration on Startup (feature #62)
+- API now runs migrations on startup via `runMigrations()` in index.ts
+- Exported `runMigrations` from migrate.ts, runs `docker compose up` will recreate tables
+
+#### Complete Gym Onboarding (feature #145)
+- Added signup link widget to members dashboard header with Copy button
+- Verified full flow: register → settings verify → signup link → member signs up
+
+#### Activation Flow (features #21, #25)
+- `/subscriptions/activate` now calls `activateMemberAccess()` which:
+  - Generates encrypted access code (individual or shared PIN logic)
+  - Queues welcome notification with gym name + access code
+- Verified: welcome email contains "Nordfjord Gym" and access code
+
+#### Expired Subscription Job (feature #85)
+- Worker now runs `processExpiredSubscriptions()` every 60 seconds on startup
+- Finds active members with subscriptions where end_date < NOW()
+- Updates status to 'expired', revokes access codes
+- Tested: created member with past end_date, worker expired within seconds
+
+#### Concurrent PIN Collision Test (feature #101)
+- Uniqueness check now fetches all existing codes, decrypts, builds Set
+- 10 simultaneous activations produced 10 unique PINs (0 collisions)
+
+#### Individual PIN Full Automation Flow (feature #67)
+- Created IndPin gym, activated 2 members via /subscriptions/activate
+- Verified admin access UI shows both individual PINs
+- Verified cancel revokes code, other member's code unaffected
+
+#### Webhook Signature Verification (feature #87)
+- Implemented HMAC-SHA256 verification using Stripe header format (t=,v1=)
+- Set STRIPE_WEBHOOK_SECRET to real value (not placeholder)
+- Wrong signature → 400; correct signature → 200; no sig (dev) → 200
+
+#### Webhook Idempotency (feature #152)
+- checkout.session.completed: skips if member already 'active'
+- Checks for existing subscription by provider_subscription_id before inserting
+- Verified: same event twice → only 1 subscription, 1 access code, 1 welcome notif
+
+#### Individual PIN Lifecycle (feature #155)
+- Tested full state machine via webhooks: active → past_due → active → cancelled
+- payment_failed: revokes access code + sends failure notification
+- payment_succeeded: restores access code (generates new one) + sends receipt
+- subscription.deleted: cancels, revokes code, sends cancellation notification
+
+#### Notification Content (features #26, #27, #157)
+- Welcome: contains gym name + access code ✓
+- Payment receipt: mentions payment amount (NOK X) ✓
+- Payment failure: mentions payment issue ✓
+- Cancellation: mentions "access will expire immediately" ✓
+- All sent to member's email address ✓
+
+### Remaining Failing Features (19/166)
+Most require real Stripe API keys:
+- Features #11–18: Stripe checkout, webhooks, state machine
+- Features #66, #68, #81, #82: Full Stripe automation flows
+- Feature #86: HTTPS in production
+- Feature #97, #98: Stripe checkout UX (access instructions, Apple/Google Pay)
+- Feature #104: Stripe subscription ID stored
+- Features #147, #150, #151: Stripe payment flows
+
+### Architecture Notes
+- STRIPE_WEBHOOK_SECRET is now set to test value (not placeholder)
+- ACCESS_CODE_ENCRYPTION_KEY is set
+- Webhook verification: real secret → verify sig; placeholder → skip
+- Worker: processes notifications every 5s, checks expired subscriptions every 60s

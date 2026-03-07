@@ -400,7 +400,7 @@ export default function SettingsPage() {
     setIgloohomeLockSaving(true);
     setIgloohomeLockError('');
     try {
-      const token = localStorage.getItem('gymaccess_token');
+      const token = localStorage.getItem('token');
       const body: Record<string, string> = {
         igloohome_lock_id: igloohomeLockId.trim(),
         igloohome_client_id: igloohomeClientId.trim(),

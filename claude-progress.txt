@@ -436,3 +436,30 @@ Most require real Stripe API keys:
 - Fixed mock Connect Webview URL construction (proper ? vs & separator)
 
 ### Current: 200/200 (100%) COMPLETE
+
+## Session 11 (2026-03-07) — igloohome Direct API + Seam Paid Add-on
+
+### Completed: 210/210 features passing
+
+#### igloohome Direct API (features 201–206)
+- Created `api/src/utils/igloohome.ts`: OAuth2 client_credentials token fetch with 24h cache,
+  `createAlgoPin()` (POST /devices/{lockId}/algopin/hourly, 672-hour max cap), `deleteAlgoPin()` (best-effort DELETE)
+- Verified API docs at igloocompany.stoplight.io: token URL `https://auth.igloohome.co/oauth2/token`,
+  base URL `https://api.igloodeveloper.co/igloohome`, endpoint `POST /devices/{deviceId}/algopin/hourly`
+- Body: `{ variance: 1, startDate, endDate, accessName }` (hour-aligned UTC datetimes)
+- migrate.ts: added `igloohome_lock_id` (text, nullable) to gyms
+- subscriptions.ts: activateMemberAccess() priority: igloohome_direct → Seam (seam_tier=active) → internal PIN
+- webhooks.ts: revokeAccessCodes() handles igloohome_direct; renewal refreshes PINs for igloohome_direct
+
+#### Seam as Paid Add-on (features 207–209)
+- migrate.ts: added `seam_tier` column (default 'none') to gyms
+- admin.ts: `seamRequired()` changed to async, checks seam_tier='active' in DB, returns 402 if not
+- admin.ts: POST /admin/saas/seam-addon creates Stripe checkout with `metadata: { gymId, addon: 'seam' }`
+- webhooks.ts: handleSaasEvent handles `addon='seam'` → sets seam_tier='active'
+- admin.ts: PUT /settings accepts `igloohome_lock_id` field
+- admin.ts: regenerate PIN route supports both igloohome_direct and Seam
+
+#### Settings UI (feature 210)
+- Split into two sections: "igloohome Direct (Free)" with lockId input + helper text
+  and "Smart Lock via Seam (Premium)" with upgrade CTA when seam_tier='none'
+- "Free" and "Premium" badges clearly differentiate the two tiers

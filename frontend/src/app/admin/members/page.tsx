@@ -49,6 +49,7 @@ export default function MembersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState<ConfirmModal | null>(null);
+  const [resendMsg, setResendMsg] = useState<{ memberId: string; text: string; isError: boolean } | null>(null);
   const [gymId, setGymId] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -93,10 +94,19 @@ export default function MembersPage() {
     const token = localStorage.getItem('token');
     setActionLoading(memberId + action);
     try {
-      await fetch(`${API_URL}/admin/members/${memberId}/${action}`, {
+      const res = await fetch(`${API_URL}/admin/members/${memberId}/${action}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (action === 'resend') {
+        if (res.ok) {
+          setResendMsg({ memberId, text: 'Access code sent!', isError: false });
+        } else {
+          const data = await res.json().catch(() => ({}));
+          setResendMsg({ memberId, text: data.error || 'Failed to send', isError: true });
+        }
+        setTimeout(() => setResendMsg(null), 3000);
+      }
       await loadMembers(search, statusFilter, currentPage);
     } finally {
       setActionLoading(null);
@@ -256,13 +266,19 @@ export default function MembersPage() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => doAction(member.member_id, 'resend')}
-                          disabled={actionLoading === member.member_id + 'resend'}
-                          className="text-xs text-forest-700 hover:text-forest-900 font-medium hover:underline disabled:opacity-50"
-                        >
-                          Resend
-                        </button>
+                        {resendMsg?.memberId === member.member_id ? (
+                          <span className={`text-xs font-medium ${resendMsg.isError ? 'text-red-600' : 'text-forest-700'}`}>
+                            {resendMsg.text}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => doAction(member.member_id, 'resend')}
+                            disabled={actionLoading === member.member_id + 'resend'}
+                            className="text-xs text-forest-700 hover:text-forest-900 font-medium hover:underline disabled:opacity-50"
+                          >
+                            {actionLoading === member.member_id + 'resend' ? 'Sending…' : 'Resend'}
+                          </button>
+                        )}
                         {member.status === 'active' && (
                           <button
                             onClick={() => setConfirmModal({ memberId: member.member_id, memberName: member.name, action: 'suspend' })}

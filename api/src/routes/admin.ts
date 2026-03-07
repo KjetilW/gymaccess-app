@@ -220,7 +220,12 @@ adminRoutes.post('/members/:memberId/resend', async (req: AuthRequest, res) => {
   try {
     const result = await pool.query(
       `SELECT m.*, ac.code as access_code FROM members m
-       LEFT JOIN access_codes ac ON m.member_id = ac.member_id AND ac.valid_to IS NULL
+       LEFT JOIN access_codes ac ON ac.code_id = (
+         SELECT code_id FROM access_codes
+         WHERE member_id = m.member_id
+         AND (valid_to IS NULL OR valid_to > NOW())
+         ORDER BY created_at DESC LIMIT 1
+       )
        WHERE m.member_id = $1 AND m.gym_id = $2`,
       [req.params.memberId, req.gymId]
     );
@@ -229,9 +234,11 @@ adminRoutes.post('/members/:memberId/resend', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Member not found' });
     }
 
-    // TODO: Queue notification via worker
     const member = result.rows[0];
     const plainCode = safeDecrypt(member.access_code);
+    if (!plainCode) {
+      return res.status(400).json({ error: 'No active access code found for this member' });
+    }
     await pool.query(
       `INSERT INTO notifications (member_id, type, channel, recipient, subject, body, status)
        VALUES ($1, 'access_info', 'email', $2, 'Your Access Information', $3, 'pending')`,

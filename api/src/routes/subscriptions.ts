@@ -258,20 +258,22 @@ subscriptionRoutes.post('/verify-session', async (req, res) => {
       return res.status(400).json({ error: 'No memberId in session metadata' });
     }
 
-    const member = await pool.query('SELECT status FROM members WHERE member_id = $1', [memberId]);
+    const member = await pool.query('SELECT member_id FROM members WHERE member_id = $1', [memberId]);
     if (member.rows.length === 0) {
       return res.status(404).json({ error: 'Member not found' });
     }
 
-    // Already activated (webhook already processed) — return success without double-activating
-    if (member.rows[0].status === 'active') {
-      return res.json({ status: 'active', alreadyActivated: true });
-    }
-
-    await pool.query(
-      "UPDATE members SET status = 'active', stripe_customer_id = $1, updated_at = NOW() WHERE member_id = $2",
+    // Atomic update: only succeeds if status is not already 'active'.
+    // This prevents double-activation when both verify-session and the webhook run concurrently.
+    const updateResult = await pool.query(
+      "UPDATE members SET status = 'active', stripe_customer_id = $1, updated_at = NOW() WHERE member_id = $2 AND status != 'active' RETURNING member_id",
       [session.customer, memberId]
     );
+
+    if (updateResult.rows.length === 0) {
+      // Another process (webhook) already activated this member — return success
+      return res.json({ status: 'active', alreadyActivated: true });
+    }
 
     const existingSub = session.subscription ? await pool.query(
       'SELECT subscription_id FROM subscriptions WHERE provider_subscription_id = $1',

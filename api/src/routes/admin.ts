@@ -68,8 +68,16 @@ adminRoutes.get('/members', async (req: AuthRequest, res) => {
 
     let baseQuery = `
       FROM members m
-      LEFT JOIN access_codes ac ON m.member_id = ac.member_id AND ac.valid_to IS NULL
-      LEFT JOIN subscriptions s ON m.member_id = s.member_id AND s.status = 'active'
+      LEFT JOIN access_codes ac ON ac.code_id = (
+        SELECT code_id FROM access_codes
+        WHERE member_id = m.member_id AND valid_to IS NULL
+        ORDER BY created_at DESC LIMIT 1
+      )
+      LEFT JOIN subscriptions s ON s.subscription_id = (
+        SELECT subscription_id FROM subscriptions
+        WHERE member_id = m.member_id AND status = 'active'
+        ORDER BY created_at DESC LIMIT 1
+      )
       WHERE m.gym_id = $1
     `;
     const params: any[] = [req.gymId];

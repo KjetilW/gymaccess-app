@@ -66,15 +66,13 @@ async function handleMemberEvent(event: any) {
       const session = event.data.object;
       const memberId = session.metadata?.memberId;
       if (memberId) {
-        const member = await pool.query(
-          'SELECT status FROM members WHERE member_id = $1',
-          [memberId]
+        // Atomic update: only proceeds if not already active, preventing double-activation
+        // when both the webhook and verify-session endpoint run concurrently.
+        const updateResult = await pool.query(
+          "UPDATE members SET status = 'active', stripe_customer_id = $1, updated_at = NOW() WHERE member_id = $2 AND status != 'active' RETURNING member_id",
+          [session.customer, memberId]
         );
-        if (member.rows.length > 0 && member.rows[0].status !== 'active') {
-          await pool.query(
-            "UPDATE members SET status = 'active', stripe_customer_id = $1, updated_at = NOW() WHERE member_id = $2",
-            [session.customer, memberId]
-          );
+        if (updateResult.rows.length > 0) {
           const existingSub = session.subscription ? await pool.query(
             'SELECT subscription_id FROM subscriptions WHERE provider_subscription_id = $1',
             [session.subscription]

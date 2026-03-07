@@ -396,29 +396,33 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveIgloohomeLockId = async () => {
+  const handleSaveIgloohomeLockId = async (): Promise<boolean> => {
     setIgloohomeLockSaving(true);
     setIgloohomeLockError('');
-    const token = localStorage.getItem('token');
     try {
+      const token = localStorage.getItem('gymaccess_token');
       const body: Record<string, string> = {
         igloohome_lock_id: igloohomeLockId.trim(),
         igloohome_client_id: igloohomeClientId.trim(),
       };
-      // Only include client_secret if a value was entered (don't overwrite existing with blank)
       if (igloohomeClientSecret.trim()) {
         body.igloohome_client_secret = igloohomeClientSecret.trim();
       }
       const res = await fetch(`${API_URL}/admin/settings`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error('Failed to save');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setIgloohomeLockError(data.error || 'Failed to save settings');
+        return false;
+      }
       await res.json();
-      setIgloohomeClientSecret(''); // clear secret field after save
+      return true;
     } catch {
-      setIgloohomeLockError('Failed to save settings. Please try again.');
+      setIgloohomeLockError('Network error. Please try again.');
+      return false;
     } finally {
       setIgloohomeLockSaving(false);
     }
@@ -783,8 +787,8 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={async () => {
-                    await handleSaveIgloohomeLockId();
-                    if (!igloohomeLockError) setIgloohomeStep(3);
+                    const ok = await handleSaveIgloohomeLockId();
+                    if (ok) setIgloohomeStep(3);
                   }}
                   disabled={!igloohomeLockId.trim() || igloohomeLockSaving}
                   className="px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-50 transition-colors"

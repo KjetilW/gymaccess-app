@@ -47,7 +47,11 @@ adminRoutes.get('/gym', async (req: AuthRequest, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Gym not found' });
     }
-    res.json(result.rows[0]);
+    const gym = result.rows[0];
+    // Never expose igloohome_client_secret; replace with a configured flag
+    const igloohome_configured = !!(gym.igloohome_client_id && gym.igloohome_client_secret);
+    const { igloohome_client_secret: _secret, ...gymWithoutSecret } = gym;
+    res.json({ ...gymWithoutSecret, igloohome_configured });
   } catch (err) {
     console.error('Get gym error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -119,7 +123,7 @@ adminRoutes.get('/members/:memberId', async (req: AuthRequest, res) => {
               s.provider, s.provider_subscription_id, s.start_date, s.end_date as subscription_end_date,
               s.status as subscription_status,
               g.seam_device_id, g.seam_connected_account_id, g.seam_tier,
-              g.igloohome_lock_id
+              g.igloohome_lock_id, g.igloohome_client_id, g.igloohome_client_secret
        FROM members m
        LEFT JOIN access_codes ac ON m.member_id = ac.member_id AND ac.valid_to IS NULL
        LEFT JOIN subscriptions s ON s.subscription_id = (
@@ -137,12 +141,14 @@ adminRoutes.get('/members/:memberId', async (req: AuthRequest, res) => {
     }
 
     const member = result.rows[0];
-    const igloohomeDirectConfigured = isIgloohomeConfigured() && !!member.igloohome_lock_id;
+    const igloohomeDirectConfigured = isIgloohomeConfigured(member.igloohome_client_id, member.igloohome_client_secret) && !!member.igloohome_lock_id;
     const igloohomeSeamConfigured = !!(member.seam_device_id && (isSeamConfigured() || isSeamMockMode()) && member.seam_tier === 'active');
     const igloohomeConfigured = igloohomeDirectConfigured || igloohomeSeamConfigured;
 
+    // Strip sensitive fields before returning
+    const { igloohome_client_secret: _s, igloohome_client_id: _cid, ...memberSafe } = member;
     res.json({
-      ...member,
+      ...memberSafe,
       access_code: safeDecrypt(member.access_code),
       igloohome_configured: igloohomeConfigured,
       igloohome_direct_configured: igloohomeDirectConfigured,
@@ -507,7 +513,7 @@ adminRoutes.post('/saas/portal', async (req: AuthRequest, res) => {
 // Update gym settings
 adminRoutes.put('/settings', async (req: AuthRequest, res) => {
   try {
-    const { membershipPrice, billingInterval, accessType, igloohome_lock_id } = req.body;
+    const { membershipPrice, billingInterval, accessType, igloohome_lock_id, igloohome_client_id, igloohome_client_secret } = req.body;
 
     const updates: string[] = [];
     const values: any[] = [];
@@ -530,6 +536,15 @@ adminRoutes.put('/settings', async (req: AuthRequest, res) => {
       updates.push(`igloohome_lock_id = $${paramCount++}`);
       values.push(igloohome_lock_id === '' ? null : igloohome_lock_id);
     }
+    if (igloohome_client_id !== undefined) {
+      updates.push(`igloohome_client_id = $${paramCount++}`);
+      values.push(igloohome_client_id === '' ? null : igloohome_client_id);
+    }
+    // Only update client_secret if a non-empty string is provided (empty string = keep existing)
+    if (igloohome_client_secret && typeof igloohome_client_secret === 'string') {
+      updates.push(`igloohome_client_secret = $${paramCount++}`);
+      values.push(igloohome_client_secret);
+    }
 
     updates.push(`updated_at = NOW()`);
     values.push(req.gymId);
@@ -539,7 +554,10 @@ adminRoutes.put('/settings', async (req: AuthRequest, res) => {
       values
     );
 
-    res.json(result.rows[0]);
+    const gym = result.rows[0];
+    const igloohome_configured = !!(gym.igloohome_client_id && gym.igloohome_client_secret);
+    const { igloohome_client_secret: _secret, ...gymWithoutSecret } = gym;
+    res.json({ ...gymWithoutSecret, igloohome_configured });
   } catch (err) {
     console.error('Update settings error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -673,7 +691,8 @@ adminRoutes.post('/members/:memberId/igloohome/regenerate', async (req: AuthRequ
     const { memberId } = req.params;
 
     const result = await pool.query(
-      `SELECT m.*, g.seam_device_id, g.seam_tier, g.igloohome_lock_id, g.name as gym_name,
+      `SELECT m.*, g.seam_device_id, g.seam_tier, g.igloohome_lock_id,
+              g.igloohome_client_id, g.igloohome_client_secret, g.name as gym_name,
               s.end_date
        FROM members m
        JOIN gyms g ON m.gym_id = g.gym_id
@@ -688,7 +707,7 @@ adminRoutes.post('/members/:memberId/igloohome/regenerate', async (req: AuthRequ
     if (result.rows.length === 0) return res.status(404).json({ error: 'Member not found' });
     const member = result.rows[0];
 
-    const useIgloohomeDirect = isIgloohomeConfigured() && !!member.igloohome_lock_id;
+    const useIgloohomeDirect = isIgloohomeConfigured(member.igloohome_client_id, member.igloohome_client_secret) && !!member.igloohome_lock_id;
     const useSeam = !useIgloohomeDirect && (isSeamConfigured() || isSeamMockMode()) &&
                     !!member.seam_device_id && member.seam_tier === 'active';
 
@@ -710,7 +729,7 @@ adminRoutes.post('/members/:memberId/igloohome/regenerate', async (req: AuthRequ
           console.error('Failed to delete old Seam code on regenerate:', err)
         );
       } else if (row.source === 'igloohome_direct' && row.provider_code_id && member.igloohome_lock_id) {
-        await deleteAlgoPin(member.igloohome_lock_id, row.provider_code_id).catch(err =>
+        await deleteAlgoPin(member.igloohome_client_id, member.igloohome_client_secret, member.igloohome_lock_id, row.provider_code_id).catch(err =>
           console.error('Failed to delete old igloohome direct PIN on regenerate:', err)
         );
       }
@@ -728,6 +747,8 @@ adminRoutes.post('/members/:memberId/igloohome/regenerate', async (req: AuthRequ
 
     if (useIgloohomeDirect) {
       const igResult = await createAlgoPin(
+        member.igloohome_client_id,
+        member.igloohome_client_secret,
         member.igloohome_lock_id,
         startsAt,
         endsAt,

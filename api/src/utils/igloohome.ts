@@ -8,13 +8,11 @@ interface TokenCache {
   expiresAt: number; // Unix ms
 }
 
-let tokenCache: TokenCache | null = null;
+// Token cache keyed by clientId to avoid cross-gym token collisions
+const tokenCache = new Map<string, TokenCache>();
 
-export function isIgloohomeConfigured(): boolean {
-  const clientId = process.env.IGLOOHOME_CLIENT_ID;
-  const clientSecret = process.env.IGLOOHOME_CLIENT_SECRET;
-  return !!clientId && clientId !== 'your_igloohome_client_id_here' &&
-         !!clientSecret && clientSecret !== 'your_igloohome_client_secret_here';
+export function isIgloohomeConfigured(clientId?: string | null, clientSecret?: string | null): boolean {
+  return !!clientId && !!clientSecret;
 }
 
 function getTokenUrl(): string {
@@ -36,14 +34,14 @@ function formatIgloohomeDate(date: Date): string {
 }
 
 // Fetch OAuth2 access token with in-memory caching (refreshes 60s before expiry)
-export async function getAccessToken(): Promise<string | null> {
+// Cache is keyed by clientId to avoid cross-gym token collisions
+export async function getAccessToken(clientId: string, clientSecret: string): Promise<string | null> {
   const now = Date.now();
-  if (tokenCache && now < tokenCache.expiresAt - 60_000) {
-    return tokenCache.token;
+  const cached = tokenCache.get(clientId);
+  if (cached && now < cached.expiresAt - 60_000) {
+    return cached.token;
   }
 
-  const clientId = process.env.IGLOOHOME_CLIENT_ID!;
-  const clientSecret = process.env.IGLOOHOME_CLIENT_SECRET!;
   const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
   try {
@@ -64,11 +62,11 @@ export async function getAccessToken(): Promise<string | null> {
 
     const data: any = await response.json();
     const expiresIn: number = data.expires_in || 86400; // default 24h
-    tokenCache = {
+    tokenCache.set(clientId, {
       token: data.access_token,
       expiresAt: now + expiresIn * 1000,
-    };
-    return tokenCache.token;
+    });
+    return data.access_token;
   } catch (err) {
     console.error('igloohome getAccessToken error:', err);
     return null;
@@ -79,12 +77,14 @@ export async function getAccessToken(): Promise<string | null> {
 // lockId = Bluetooth device ID from igloohome app
 // Returns { pin, pinId } or null on failure
 export async function createAlgoPin(
+  clientId: string,
+  clientSecret: string,
   lockId: string,
   startsAt: Date,
   endsAt: Date,
   accessName: string = 'GymAccess Member'
 ): Promise<{ pin: string; pinId: string } | null> {
-  const token = await getAccessToken();
+  const token = await getAccessToken(clientId, clientSecret);
   if (!token) return null;
 
   const apiUrl = getApiUrl();
@@ -127,8 +127,8 @@ export async function createAlgoPin(
 
 // Attempt to delete an algoPIN from igloohome (best-effort; PIN auto-expires at endDate)
 // The igloohome API may not support deletion — we log and return false if not supported
-export async function deleteAlgoPin(lockId: string, pinId: string): Promise<boolean> {
-  const token = await getAccessToken();
+export async function deleteAlgoPin(clientId: string, clientSecret: string, lockId: string, pinId: string): Promise<boolean> {
+  const token = await getAccessToken(clientId, clientSecret);
   if (!token) return false;
 
   const apiUrl = getApiUrl();

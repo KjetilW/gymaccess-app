@@ -463,3 +463,54 @@ Most require real Stripe API keys:
 - Split into two sections: "igloohome Direct (Free)" with lockId input + helper text
   and "Smart Lock via Seam (Premium)" with upgrade CTA when seam_tier='none'
 - "Free" and "Premium" badges clearly differentiate the two tiers
+
+---
+
+## Session 12 - Coding Agent (2026-03-07)
+
+### Completed (215/215 — ALL FEATURES PASSING)
+
+#### igloohome Per-Gym Credentials (features 211-215)
+
+**Problem**: igloohome OAuth2 credentials were read from global env vars (IGLOOHOME_CLIENT_ID/SECRET). Changed to per-gym credentials stored in the gyms table.
+
+**DB Migration (feature 211)**:
+- Added `igloohome_client_id TEXT` and `igloohome_client_secret TEXT` columns to gyms table
+- Migration runs on API startup automatically
+- Removed IGLOOHOME_CLIENT_ID and IGLOOHOME_CLIENT_SECRET from .env.example (replaced with comment)
+- API starts correctly without those env vars
+
+**API Endpoints (feature 212)**:
+- `GET /admin/gym`: Returns `igloohome_client_id` and `igloohome_configured` (boolean), never returns raw `igloohome_client_secret` (stripped via destructuring)
+- `PUT /admin/settings`: Accepts `igloohome_client_id` and `igloohome_client_secret`; empty string for client_id sets to NULL; empty string for client_secret is ignored (keeps existing); non-empty string for secret updates it
+- Gym isolation enforced via req.gymId (existing pattern)
+
+**igloohome.ts refactored (feature 213)**:
+- `isIgloohomeConfigured(clientId?, clientSecret?)` now accepts params, returns `!!(clientId && clientSecret)`
+- `getAccessToken(clientId, clientSecret)` accepts params, token cache is now a `Map<string, TokenCache>` keyed by clientId
+- `createAlgoPin(clientId, clientSecret, lockId, ...)` accepts and forwards params
+- `deleteAlgoPin(clientId, clientSecret, lockId, pinId)` accepts and forwards params
+- No env vars read in any igloohome function
+
+**Activation flow (feature 213)**:
+- `activateMemberAccess()` now queries `g.igloohome_client_id, g.igloohome_client_secret` from gyms table
+- Passes them to `isIgloohomeConfigured()` and `createAlgoPin()`
+- Passes them to `deleteAlgoPin()` in the revoke-previous-codes path
+
+**Settings UI (feature 214)**:
+- Added "Client ID" text input (pre-filled from API response)
+- Added "Client Secret" password input (always blank on load)
+- Green "Configured" badge next to Client Secret label when `igloohome_configured=true`
+- Button renamed from "Save Lock ID" to "Save igloohome Settings"
+- On save: sends all three fields; blank secret omitted so existing secret is preserved
+- After save: secret field cleared, "Configured" badge appears, "Lock ID configured" indicator shown
+- Clearing all fields and saving disables integration
+
+**Deletion/renewal paths (feature 215)**:
+- `webhooks.ts revokeAccessCodes()`: now queries `igloohome_client_id` and `igloohome_client_secret` from gyms, passes to `deleteAlgoPin()`
+- `admin.ts regenerate route`: queries and passes per-gym credentials to both `deleteAlgoPin()` and `createAlgoPin()`
+- Graceful degradation: if credentials missing, .catch() logs error and member update still completes
+
+### Status
+- **215/215 features passing** — all features complete!
+- No remaining work items

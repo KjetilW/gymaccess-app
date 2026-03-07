@@ -23,7 +23,7 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
   const memberResult = await pool.query(
     `SELECT m.*, g.access_type, g.shared_pin, g.name as gym_name,
             g.seam_device_id, g.seam_connected_account_id, g.seam_tier,
-            g.igloohome_lock_id
+            g.igloohome_lock_id, g.igloohome_client_id, g.igloohome_client_secret
      FROM members m
      JOIN gyms g ON m.gym_id = g.gym_id
      WHERE m.member_id = $1`,
@@ -37,7 +37,7 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
   // Priority: (1) igloohome direct if lock_id set and credentials configured
   //           (2) Seam if seam_tier='active' and seam_device_id set
   //           (3) internal PIN
-  const useIgloohomeDirect = isIgloohomeConfigured() && !!member.igloohome_lock_id;
+  const useIgloohomeDirect = isIgloohomeConfigured(member.igloohome_client_id, member.igloohome_client_secret) && !!member.igloohome_lock_id;
   const useSeam = !useIgloohomeDirect && (isSeamConfigured() || isSeamMockMode()) &&
                   !!member.seam_device_id && member.seam_tier === 'active';
 
@@ -53,6 +53,8 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
     // Create algoPIN via igloohome direct API
     try {
       const result = await createAlgoPin(
+        member.igloohome_client_id,
+        member.igloohome_client_secret,
         member.igloohome_lock_id,
         startsAt,
         endsAt,
@@ -123,7 +125,7 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
         console.error('Failed to delete Seam access code on revoke:', err)
       );
     } else if (existing.source === 'igloohome_direct' && existing.provider_code_id && member.igloohome_lock_id) {
-      await deleteAlgoPin(member.igloohome_lock_id, existing.provider_code_id).catch(err =>
+      await deleteAlgoPin(member.igloohome_client_id, member.igloohome_client_secret, member.igloohome_lock_id, existing.provider_code_id).catch(err =>
         console.error('Failed to delete igloohome direct PIN on revoke:', err)
       );
     }

@@ -30,12 +30,13 @@ function verifyStripeSignature(payload: Buffer | string, sigHeader: string, secr
 
 // Revoke all active access codes for a member (DB + provider if applicable)
 async function revokeAccessCodes(memberId: string) {
-  // Get the gym's lock_id in case we need to delete igloohome_direct PINs
+  // Get the gym's per-gym igloohome credentials and lock_id for direct PIN deletion
   const gymData = await pool.query(
-    'SELECT g.igloohome_lock_id FROM members m JOIN gyms g ON m.gym_id = g.gym_id WHERE m.member_id = $1',
+    `SELECT g.igloohome_lock_id, g.igloohome_client_id, g.igloohome_client_secret
+     FROM members m JOIN gyms g ON m.gym_id = g.gym_id WHERE m.member_id = $1`,
     [memberId]
   );
-  const igloohomeLockId = gymData.rows[0]?.igloohome_lock_id;
+  const { igloohome_lock_id: igloohomeLockId, igloohome_client_id: clientId, igloohome_client_secret: clientSecret } = gymData.rows[0] || {};
 
   const activeCodes = await pool.query(
     "SELECT provider_code_id, source FROM access_codes WHERE member_id = $1 AND valid_to IS NULL",
@@ -46,8 +47,8 @@ async function revokeAccessCodes(memberId: string) {
       await deleteAccessCode(row.provider_code_id).catch(err =>
         console.error('Seam deleteAccessCode failed:', err)
       );
-    } else if (row.source === 'igloohome_direct' && row.provider_code_id && igloohomeLockId) {
-      await deleteAlgoPin(igloohomeLockId, row.provider_code_id).catch(err =>
+    } else if (row.source === 'igloohome_direct' && row.provider_code_id && igloohomeLockId && clientId && clientSecret) {
+      await deleteAlgoPin(clientId, clientSecret, igloohomeLockId, row.provider_code_id).catch(err =>
         console.error('igloohome direct deleteAlgoPin failed:', err)
       );
     }

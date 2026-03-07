@@ -147,6 +147,10 @@ const migrations = `
 
   -- Seam as paid add-on tier ('none' or 'active')
   ALTER TABLE gyms ADD COLUMN IF NOT EXISTS seam_tier VARCHAR(20) NOT NULL DEFAULT 'none';
+
+  -- Per-gym igloohome OAuth2 credentials (stored in DB, not env vars)
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS igloohome_client_id TEXT;
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS igloohome_client_secret TEXT;
 `;
 
 export async function runMigrations() {

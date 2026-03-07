@@ -22,6 +22,8 @@ interface GymSettings {
   seam_device_id: string | null;
   seam_tier: string;
   igloohome_lock_id: string | null;
+  igloohome_client_id: string | null;
+  igloohome_configured: boolean;
 }
 
 interface SeamDevice {
@@ -132,6 +134,9 @@ export default function SettingsPage() {
 
   // igloohome Direct state
   const [igloohomeLockId, setIgloohomeLockId] = useState('');
+  const [igloohomeClientId, setIgloohomeClientId] = useState('');
+  const [igloohomeClientSecret, setIgloohomeClientSecret] = useState('');
+  const [igloohomeCredConfigured, setIgloohomeCredConfigured] = useState(false);
   const [igloohomeLockSaving, setIgloohomeLockSaving] = useState(false);
   const [igloohomeLockSaved, setIgloohomeLockSaved] = useState(false);
   const [igloohomeLockError, setIgloohomeLockError] = useState('');
@@ -188,6 +193,8 @@ export default function SettingsPage() {
 
       // igloohome Direct state
       setIgloohomeLockId(gymData.igloohome_lock_id || '');
+      setIgloohomeClientId(gymData.igloohome_client_id || '');
+      setIgloohomeCredConfigured(!!gymData.igloohome_configured);
 
       // Seam state from gym data
       const connected = !!(gymData.seam_connected_account_id && !gymData.seam_connected_account_id.startsWith('pending:'));
@@ -388,16 +395,27 @@ export default function SettingsPage() {
     setIgloohomeLockSaved(false);
     const token = localStorage.getItem('token');
     try {
+      const body: Record<string, string> = {
+        igloohome_lock_id: igloohomeLockId.trim(),
+        igloohome_client_id: igloohomeClientId.trim(),
+      };
+      // Only include client_secret if a value was entered (don't overwrite existing with blank)
+      if (igloohomeClientSecret.trim()) {
+        body.igloohome_client_secret = igloohomeClientSecret.trim();
+      }
       const res = await fetch(`${API_URL}/admin/settings`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ igloohome_lock_id: igloohomeLockId.trim() || '' }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error('Failed to save');
+      const updated = await res.json();
+      setIgloohomeCredConfigured(!!updated.igloohome_configured);
+      setIgloohomeClientSecret(''); // clear secret field after save
       setIgloohomeLockSaved(true);
       setTimeout(() => setIgloohomeLockSaved(false), 2500);
     } catch {
-      setIgloohomeLockError('Failed to save Lock ID. Please try again.');
+      setIgloohomeLockError('Failed to save settings. Please try again.');
     } finally {
       setIgloohomeLockSaving(false);
     }
@@ -638,7 +656,39 @@ export default function SettingsPage() {
               <p className="mt-1.5 text-xs text-gray-400">Find this in your igloohome app under Device Settings → Device Info.</p>
             </div>
 
-            {igloohomeLockId.trim() && (
+            <div>
+              <label className="block text-sm font-semibold text-forest-800 mb-1.5">Client ID</label>
+              <input
+                type="text"
+                value={igloohomeClientId}
+                onChange={e => setIgloohomeClientId(e.target.value)}
+                placeholder="Your igloohome OAuth2 Client ID"
+                className="w-full px-4 py-3 rounded-xl border border-warm-200 text-forest-900 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent transition-all hover:border-forest-400"
+              />
+              <p className="mt-1.5 text-xs text-gray-400">From your iglooaccess developer dashboard.</p>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <label className="block text-sm font-semibold text-forest-800">Client Secret</label>
+                {igloohomeCredConfigured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-forest-100 text-forest-800 border border-forest-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-forest-600 inline-block" />
+                    Configured
+                  </span>
+                )}
+              </div>
+              <input
+                type="password"
+                value={igloohomeClientSecret}
+                onChange={e => setIgloohomeClientSecret(e.target.value)}
+                placeholder={igloohomeCredConfigured ? 'Leave blank to keep existing secret' : 'Your igloohome OAuth2 Client Secret'}
+                className="w-full px-4 py-3 rounded-xl border border-warm-200 text-forest-900 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent transition-all hover:border-forest-400"
+              />
+              <p className="mt-1.5 text-xs text-gray-400">Never returned by the API. Leave blank to keep the existing secret.</p>
+            </div>
+
+            {igloohomeLockId.trim() && igloohomeCredConfigured && (
               <div className="flex items-center gap-1.5 text-xs text-forest-700">
                 <span className="w-2 h-2 rounded-full bg-forest-600 inline-block" />
                 Lock ID configured
@@ -654,7 +704,7 @@ export default function SettingsPage() {
                 disabled={igloohomeLockSaving}
                 className="px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-50 transition-colors"
               >
-                {igloohomeLockSaving ? 'Saving…' : 'Save Lock ID'}
+                {igloohomeLockSaving ? 'Saving…' : 'Save igloohome Settings'}
               </button>
               {igloohomeLockSaved && <span className="text-sm text-forest-700 font-medium">✓ Saved</span>}
             </div>

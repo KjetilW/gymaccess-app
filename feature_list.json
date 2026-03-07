@@ -2705,7 +2705,7 @@
       "Step 4: Remove IGLOOHOME_CLIENT_ID and IGLOOHOME_CLIENT_SECRET from .env.example and replace with a comment: '# igloohome credentials are configured per-gym in the admin Settings page'",
       "Step 5: Verify the API starts correctly without IGLOOHOME_CLIENT_ID/SECRET in env"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2719,7 +2719,7 @@
       "Step 5: Verify GET never includes igloohome_client_secret in the response",
       "Step 6: Verify gym isolation — each gym only sees and updates its own credentials"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2734,7 +2734,7 @@
       "Step 6: Verify that a gym without credentials set falls back to internal PIN (source = 'internal')",
       "Step 7: Verify no IGLOOHOME_CLIENT_ID or IGLOOHOME_CLIENT_SECRET env var is read anywhere in the igloohome activation path"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2750,7 +2750,7 @@
       "Step 7: After successful save with all three fields, UI shows 'Lock ID configured' and 'Configured' badge on Client Secret",
       "Step 8: Admin can clear the integration by emptying all fields and saving"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2764,6 +2764,6 @@
       "Step 5: Manually regenerate a PIN via the admin UI — verify old PIN is deleted and new PIN created using per-gym credentials",
       "Step 6: Verify graceful degradation: if gym credentials are missing or the igloohome API call fails, the member status update still completes and the error is logged"
     ],
-    "passes": false
+    "passes": true
   }
 ]

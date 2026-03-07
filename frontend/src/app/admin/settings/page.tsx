@@ -137,6 +137,8 @@ export default function SettingsPage() {
   const [igloohomeClientId, setIgloohomeClientId] = useState('');
   const [igloohomeClientSecret, setIgloohomeClientSecret] = useState('');
   const [igloohomeCredConfigured, setIgloohomeCredConfigured] = useState(false);
+  // 0=disconnected, 1=enter credentials, 2=enter lock ID, 3=connected
+  const [igloohomeStep, setIgloohomeStep] = useState(0);
   const [igloohomeLockSaving, setIgloohomeLockSaving] = useState(false);
   const [igloohomeLockSaved, setIgloohomeLockSaved] = useState(false);
   const [igloohomeLockError, setIgloohomeLockError] = useState('');
@@ -195,6 +197,14 @@ export default function SettingsPage() {
       setIgloohomeLockId(gymData.igloohome_lock_id || '');
       setIgloohomeClientId(gymData.igloohome_client_id || '');
       setIgloohomeCredConfigured(!!gymData.igloohome_configured);
+      // Set starting step based on what's already configured
+      if (gymData.igloohome_configured && gymData.igloohome_lock_id) {
+        setIgloohomeStep(3); // fully connected
+      } else if (gymData.igloohome_configured) {
+        setIgloohomeStep(2); // have creds, need lock ID
+      } else {
+        setIgloohomeStep(0); // nothing configured yet
+      }
 
       // Seam state from gym data
       const connected = !!(gymData.seam_connected_account_id && !gymData.seam_connected_account_id.startsWith('pending:'));

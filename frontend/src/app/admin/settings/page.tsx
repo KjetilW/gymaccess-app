@@ -418,7 +418,9 @@ export default function SettingsPage() {
         setIgloohomeLockError(data.error || 'Failed to save settings');
         return false;
       }
-      await res.json();
+      const updated = await res.json();
+      setSettings(prev => prev ? { ...prev, igloohome_configured: !!updated.igloohome_configured } : prev);
+      setIgloohomeClientSecret('');
       return true;
     } catch {
       setIgloohomeLockError('Network error. Please try again.');
@@ -779,7 +781,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => setIgloohomeStep(1)}
+                  onClick={() => { setIgloohomeLockError(''); setIgloohomeStep(1); }}
                   className="px-4 py-2.5 border border-warm-300 text-gray-600 rounded-xl text-sm font-semibold hover:bg-warm-50 transition-colors"
                 >
                   Back

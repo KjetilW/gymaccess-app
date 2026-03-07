@@ -650,75 +650,184 @@ export default function SettingsPage() {
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-forest-100 text-forest-800 border border-forest-200">Free</span>
           </div>
           <p className="text-sm text-gray-500 mb-5">
-            Enter your igloohome device's Bluetooth ID to automatically generate time-bound algoPINs for members — no Seam account needed.
+            Connect your igloohome smart lock to automatically generate time-bound access codes for members.
           </p>
 
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-semibold text-forest-800 mb-1.5">Lock ID (Bluetooth Device ID)</label>
-              <input
-                type="text"
-                value={igloohomeLockId}
-                onChange={e => setIgloohomeLockId(e.target.value)}
-                placeholder="e.g. A1B2C3D4E5F6"
-                className="w-full px-4 py-3 rounded-xl border border-warm-200 text-forest-900 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent transition-all hover:border-forest-400"
-              />
-              <p className="mt-1.5 text-xs text-gray-400">Find this in your igloohome app under Device Settings → Device Info.</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-forest-800 mb-1.5">Client ID</label>
-              <input
-                type="text"
-                value={igloohomeClientId}
-                onChange={e => setIgloohomeClientId(e.target.value)}
-                placeholder="Your igloohome OAuth2 Client ID"
-                className="w-full px-4 py-3 rounded-xl border border-warm-200 text-forest-900 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent transition-all hover:border-forest-400"
-              />
-              <p className="mt-1.5 text-xs text-gray-400">From your iglooaccess developer dashboard.</p>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <label className="block text-sm font-semibold text-forest-800">Client Secret</label>
-                {igloohomeCredConfigured && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-forest-100 text-forest-800 border border-forest-200">
-                    <span className="w-1.5 h-1.5 rounded-full bg-forest-600 inline-block" />
-                    Configured
-                  </span>
-                )}
+          {/* Step 0: Disconnected — prerequisites + CTA */}
+          {igloohomeStep === 0 && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-forest-800">Before you start, confirm:</p>
+                <ul className="space-y-1.5 text-sm text-gray-600">
+                  {[
+                    'Your igloohome lock is installed on the gym door',
+                    'The lock is paired in the igloohome mobile app',
+                    'You can unlock the door using the igloohome app',
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-2">
+                      <svg className="w-4 h-4 text-forest-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <input
-                type="password"
-                value={igloohomeClientSecret}
-                onChange={e => setIgloohomeClientSecret(e.target.value)}
-                placeholder={igloohomeCredConfigured ? 'Leave blank to keep existing secret' : 'Your igloohome OAuth2 Client Secret'}
-                className="w-full px-4 py-3 rounded-xl border border-warm-200 text-forest-900 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent transition-all hover:border-forest-400"
-              />
-              <p className="mt-1.5 text-xs text-gray-400">Never returned by the API. Leave blank to keep the existing secret.</p>
-            </div>
-
-            {igloohomeLockId.trim() && igloohomeCredConfigured && (
-              <div className="flex items-center gap-1.5 text-xs text-forest-700">
-                <span className="w-2 h-2 rounded-full bg-forest-600 inline-block" />
-                Lock ID configured
-              </div>
-            )}
-
-            {igloohomeLockError && <p className="text-xs text-red-600">{igloohomeLockError}</p>}
-
-            <div className="flex items-center gap-4">
               <button
                 type="button"
-                onClick={handleSaveIgloohomeLockId}
-                disabled={igloohomeLockSaving}
-                className="px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-50 transition-colors"
+                onClick={() => setIgloohomeStep(1)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 transition-colors"
               >
-                {igloohomeLockSaving ? 'Saving…' : 'Save igloohome Settings'}
+                Connect igloohome lock
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
               </button>
-              {igloohomeLockSaved && <span className="text-sm text-forest-700 font-medium">✓ Saved</span>}
             </div>
-          </div>
+          )}
+
+          {/* Step 1: Enter API credentials */}
+          {igloohomeStep === 1 && (
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 bg-forest-50 border border-forest-200 rounded-xl">
+                <span className="text-xs font-bold text-forest-700 bg-forest-200 rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">1</span>
+                <div>
+                  <p className="text-sm font-semibold text-forest-800 mb-1">Get your igloohome API credentials</p>
+                  <p className="text-sm text-forest-700 mb-3">
+                    Create a free account at iglooaccess, then copy your Client ID and Client Secret from the API Access page.
+                  </p>
+                  <a
+                    href="https://access.igloocompany.co/api-access"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 border border-forest-700 text-forest-800 rounded-lg text-sm font-semibold hover:bg-forest-100 transition-colors"
+                  >
+                    Open iglooaccess
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-semibold text-forest-800 mb-1.5">Client ID</label>
+                  <input
+                    type="text"
+                    value={igloohomeClientId}
+                    onChange={e => setIgloohomeClientId(e.target.value)}
+                    placeholder="e.g. ddsieb9c44gtm7c7sxtfban7wp"
+                    className="w-full px-4 py-3 rounded-xl border border-warm-200 text-forest-900 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent transition-all hover:border-forest-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-forest-800 mb-1.5">Client Secret</label>
+                  <input
+                    type="password"
+                    value={igloohomeClientSecret}
+                    onChange={e => setIgloohomeClientSecret(e.target.value)}
+                    placeholder="Paste your Client Secret"
+                    className="w-full px-4 py-3 rounded-xl border border-warm-200 text-forest-900 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent transition-all hover:border-forest-400"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIgloohomeStep(0)}
+                  className="px-4 py-2.5 border border-warm-300 text-gray-600 rounded-xl text-sm font-semibold hover:bg-warm-50 transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIgloohomeStep(2)}
+                  disabled={!igloohomeClientId.trim() || !igloohomeClientSecret.trim()}
+                  className="px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-40 transition-colors"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Enter lock ID and save */}
+          {igloohomeStep === 2 && (
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 bg-forest-50 border border-forest-200 rounded-xl">
+                <span className="text-xs font-bold text-forest-700 bg-forest-200 rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">2</span>
+                <div>
+                  <p className="text-sm font-semibold text-forest-800 mb-1">Find your lock&apos;s Device ID</p>
+                  <p className="text-sm text-forest-700">
+                    Open the igloohome app → Devices → select your lock → Settings → Device Info. Copy the Bluetooth Device ID.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-forest-800 mb-1.5">Lock ID (Bluetooth Device ID)</label>
+                <input
+                  type="text"
+                  value={igloohomeLockId}
+                  onChange={e => setIgloohomeLockId(e.target.value)}
+                  placeholder="e.g. A1B2C3D4E5F6"
+                  className="w-full px-4 py-3 rounded-xl border border-warm-200 text-forest-900 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent transition-all hover:border-forest-400"
+                />
+              </div>
+
+              {igloohomeLockError && <p className="text-xs text-red-600">{igloohomeLockError}</p>}
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIgloohomeStep(1)}
+                  className="px-4 py-2.5 border border-warm-300 text-gray-600 rounded-xl text-sm font-semibold hover:bg-warm-50 transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await handleSaveIgloohomeLockId();
+                    if (!igloohomeLockError) setIgloohomeStep(3);
+                  }}
+                  disabled={!igloohomeLockId.trim() || igloohomeLockSaving}
+                  className="px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-40 transition-colors"
+                >
+                  {igloohomeLockSaving ? 'Saving…' : 'Save & finish'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Connected summary */}
+          {igloohomeStep === 3 && (
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-4 bg-forest-50 border border-forest-200 rounded-xl">
+                <svg className="w-5 h-5 text-forest-700 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-forest-800">igloohome lock connected</p>
+                  {igloohomeLockId && (
+                    <p className="text-xs text-forest-600 mt-0.5 font-mono truncate">
+                      Lock ID: {igloohomeLockId}
+                    </p>
+                  )}
+                  <p className="text-xs text-forest-600 mt-0.5">Access codes will be generated automatically for active members.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIgloohomeStep(1)}
+                className="text-xs font-semibold text-forest-700 hover:text-forest-900 underline underline-offset-2 transition-colors"
+              >
+                Change credentials or lock ID
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

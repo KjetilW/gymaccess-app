@@ -232,6 +232,67 @@ subscriptionRoutes.post('/checkout', async (req, res) => {
   }
 });
 
+// Verify a Stripe checkout session and activate the member if payment succeeded.
+// Fallback for when webhooks are delayed or unavailable (e.g. local dev without stripe listen).
+subscriptionRoutes.post('/verify-session', async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe not configured' });
+    }
+
+    const { sessionId } = req.body;
+    if (!sessionId) {
+      return res.status(400).json({ error: 'sessionId is required' });
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (session.payment_status !== 'paid') {
+      return res.json({ status: 'pending' });
+    }
+
+    const memberId = session.metadata?.memberId;
+    if (!memberId) {
+      return res.status(400).json({ error: 'No memberId in session metadata' });
+    }
+
+    const member = await pool.query('SELECT status FROM members WHERE member_id = $1', [memberId]);
+    if (member.rows.length === 0) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+
+    // Already activated (webhook already processed) — return success without double-activating
+    if (member.rows[0].status === 'active') {
+      return res.json({ status: 'active', alreadyActivated: true });
+    }
+
+    await pool.query(
+      "UPDATE members SET status = 'active', stripe_customer_id = $1, updated_at = NOW() WHERE member_id = $2",
+      [session.customer, memberId]
+    );
+
+    const existingSub = session.subscription ? await pool.query(
+      'SELECT subscription_id FROM subscriptions WHERE provider_subscription_id = $1',
+      [session.subscription]
+    ) : { rows: [] };
+
+    if (existingSub.rows.length === 0) {
+      await pool.query(
+        `INSERT INTO subscriptions (member_id, provider, provider_subscription_id, status, start_date)
+         VALUES ($1, 'stripe', $2, 'active', NOW())`,
+        [memberId, session.subscription]
+      );
+    }
+
+    await activateMemberAccess(memberId);
+
+    res.json({ status: 'active' });
+  } catch (err) {
+    console.error('Verify session error:', err);
+    res.status(500).json({ error: 'Failed to verify session' });
+  }
+});
+
 // Activate subscription (called internally or via webhook)
 subscriptionRoutes.post('/activate', async (req, res) => {
   try {

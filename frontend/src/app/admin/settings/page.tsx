@@ -20,6 +20,8 @@ interface GymSettings {
   trial_ends_at: string | null;
   seam_connected_account_id: string | null;
   seam_device_id: string | null;
+  seam_tier: string;
+  igloohome_lock_id: string | null;
 }
 
 interface SeamDevice {
@@ -128,13 +130,21 @@ export default function SettingsPage() {
   const [saasError, setSaasError] = useState('');
   const [portalLoading, setPortalLoading] = useState(false);
 
-  // igloohome / Seam state
+  // igloohome Direct state
+  const [igloohomeLockId, setIgloohomeLockId] = useState('');
+  const [igloohomeLockSaving, setIgloohomeLockSaving] = useState(false);
+  const [igloohomeLockSaved, setIgloohomeLockSaved] = useState(false);
+  const [igloohomeLockError, setIgloohomeLockError] = useState('');
+
+  // Seam state
   const [seamConnected, setSeamConnected] = useState(false);
   const [seamDeviceId, setSeamDeviceId] = useState<string | null>(null);
   const [seamDevices, setSeamDevices] = useState<SeamDevice[]>([]);
   const [igloohomeLoading, setIgloohomeLoading] = useState(false);
   const [igloohomeError, setIgloohomeError] = useState('');
   const [igloohomeSaved, setIgloohomeSaved] = useState(false);
+  const [seamAddonLoading, setSeamAddonLoading] = useState(false);
+  const [seamAddonError, setSeamAddonError] = useState('');
 
   const fetchDevices = async (token: string) => {
     try {
@@ -151,8 +161,8 @@ export default function SettingsPage() {
   useEffect(() => {
     const token = localStorage.getItem('token');
 
-    // Check if returning from Seam Connect Webview
-    const webviewId = searchParams.get('seam_webview_id');
+    // Check if returning from Seam Connect Webview (real Seam uses connect_webview_id, mock uses seam_webview_id)
+    const webviewId = searchParams.get('connect_webview_id') || searchParams.get('seam_webview_id');
     if (webviewId) {
       // Check status and save connected_account_id
       fetch(`${API_URL}/admin/igloohome/status?connect_webview_id=${webviewId}`, {
@@ -176,7 +186,10 @@ export default function SettingsPage() {
       setBillingInterval(gymData.billing_interval || 'monthly');
       setAccessType(gymData.access_type || 'shared_pin');
 
-      // igloohome state from gym data
+      // igloohome Direct state
+      setIgloohomeLockId(gymData.igloohome_lock_id || '');
+
+      // Seam state from gym data
       const connected = !!(gymData.seam_connected_account_id && !gymData.seam_connected_account_id.startsWith('pending:'));
       setSeamConnected(connected);
       setSeamDeviceId(gymData.seam_device_id || null);
@@ -366,6 +379,46 @@ export default function SettingsPage() {
       setTimeout(() => setIgloohomeSaved(false), 2000);
     } catch (err: any) {
       setIgloohomeError(err.message || 'Failed to save device selection.');
+    }
+  };
+
+  const handleSaveIgloohomeLockId = async () => {
+    setIgloohomeLockSaving(true);
+    setIgloohomeLockError('');
+    setIgloohomeLockSaved(false);
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_URL}/admin/settings`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ igloohome_lock_id: igloohomeLockId.trim() || '' }),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      setIgloohomeLockSaved(true);
+      setTimeout(() => setIgloohomeLockSaved(false), 2500);
+    } catch {
+      setIgloohomeLockError('Failed to save Lock ID. Please try again.');
+    } finally {
+      setIgloohomeLockSaving(false);
+    }
+  };
+
+  const handleSeamAddonCheckout = async () => {
+    setSeamAddonLoading(true);
+    setSeamAddonError('');
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_URL}/admin/saas/seam-addon`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create checkout');
+      if (data.url) window.location.href = data.url;
+    } catch (err: any) {
+      setSeamAddonError(err.message || 'Failed to start Seam add-on checkout.');
+    } finally {
+      setSeamAddonLoading(false);
     }
   };
 
@@ -561,91 +614,166 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* igloohome / Seam Smart Lock Section */}
+      {/* igloohome Direct — Free */}
       <div className="mt-6">
         <div className="bg-white rounded-2xl border border-warm-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600">Smart Lock (igloohome via Seam)</h2>
-            {seamConnected ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-forest-100 text-forest-800">
-                <span className="w-2 h-2 rounded-full bg-forest-600 inline-block" />
-                Connected
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-                <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
-                Not connected
-              </span>
-            )}
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600">Smart Lock — igloohome Direct</h2>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-forest-100 text-forest-800 border border-forest-200">Free</span>
           </div>
-
           <p className="text-sm text-gray-500 mb-5">
-            Connect your igloohome keybox to automatically generate time-bound algoPINs for members when they activate their membership.
+            Enter your igloohome device's Bluetooth ID to automatically generate time-bound algoPINs for members — no Seam account needed.
           </p>
 
-          {!seamConnected ? (
-            <>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-semibold text-forest-800 mb-1.5">Lock ID (Bluetooth Device ID)</label>
+              <input
+                type="text"
+                value={igloohomeLockId}
+                onChange={e => setIgloohomeLockId(e.target.value)}
+                placeholder="e.g. A1B2C3D4E5F6"
+                className="w-full px-4 py-3 rounded-xl border border-warm-200 text-forest-900 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent transition-all hover:border-forest-400"
+              />
+              <p className="mt-1.5 text-xs text-gray-400">Find this in your igloohome app under Device Settings → Device Info.</p>
+            </div>
+
+            {igloohomeLockId.trim() && (
+              <div className="flex items-center gap-1.5 text-xs text-forest-700">
+                <span className="w-2 h-2 rounded-full bg-forest-600 inline-block" />
+                Lock ID configured
+              </div>
+            )}
+
+            {igloohomeLockError && <p className="text-xs text-red-600">{igloohomeLockError}</p>}
+
+            <div className="flex items-center gap-4">
               <button
                 type="button"
-                onClick={handleIgloohomeConnect}
-                disabled={igloohomeLoading}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-50 transition-colors"
+                onClick={handleSaveIgloohomeLockId}
+                disabled={igloohomeLockSaving}
+                className="px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-50 transition-colors"
               >
-                {igloohomeLoading ? (
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                )}
-                Connect igloohome Account
+                {igloohomeLockSaving ? 'Saving…' : 'Save Lock ID'}
               </button>
-              {igloohomeError && <p className="mt-2 text-xs text-red-600">{igloohomeError}</p>}
-            </>
+              {igloohomeLockSaved && <span className="text-sm text-forest-700 font-medium">✓ Saved</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Smart Lock via Seam — Premium */}
+      <div className="mt-6">
+        <div className={`bg-white rounded-2xl border p-6 ${settings?.seam_tier === 'active' ? 'border-warm-200' : 'border-warm-200 opacity-90'}`}>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600">Smart Lock via Seam</h2>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">Premium</span>
+          </div>
+          <p className="text-sm text-gray-500 mb-5">
+            Connect your igloohome account via Seam for advanced multi-device management and automatic device discovery.
+          </p>
+
+          {settings?.seam_tier !== 'active' ? (
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <svg className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <div>
+                  <p className="text-xs font-semibold text-amber-800">Seam add-on not active</p>
+                  <p className="text-xs text-amber-700 mt-0.5">Upgrade to unlock automatic igloohome device discovery and multi-lock management via Seam.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleSeamAddonCheckout}
+                  disabled={seamAddonLoading}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-600 text-white rounded-xl font-semibold text-sm hover:bg-amber-700 disabled:opacity-50 transition-colors"
+                >
+                  {seamAddonLoading ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : null}
+                  Upgrade — NOK 149/month
+                </button>
+              </div>
+              {seamAddonError && <p className="text-xs text-red-600">{seamAddonError}</p>}
+            </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-start gap-3 p-3 bg-forest-50 border border-forest-200 rounded-xl">
-                <svg className="w-4 h-4 text-forest-700 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-xs font-semibold text-forest-800">igloohome account linked via Seam</p>
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-forest-100 text-forest-800">
+                  <span className="w-2 h-2 rounded-full bg-forest-600 inline-block" />
+                  Seam add-on active
+                </span>
               </div>
 
-              {seamDevices.length > 0 && (
-                <div>
-                  <label className="block text-sm font-semibold text-forest-800 mb-2">Select keybox device</label>
-                  <div className="flex items-center gap-3">
-                    <select
-                      value={seamDeviceId || ''}
-                      onChange={e => handleSaveDevice(e.target.value)}
-                      className="flex-1 px-3 py-2.5 rounded-xl border border-warm-200 text-forest-900 text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent"
-                    >
-                      <option value="">Select a device…</option>
-                      {seamDevices.map(d => (
-                        <option key={d.device_id} value={d.device_id}>{d.display_name}</option>
-                      ))}
-                    </select>
-                    {igloohomeSaved && <span className="text-xs text-forest-700 font-medium whitespace-nowrap">✓ Saved</span>}
+              {!seamConnected ? (
+                <>
+                  <p className="text-sm text-gray-500">Connect your igloohome account via Seam to enable automatic device discovery.</p>
+                  <button
+                    type="button"
+                    onClick={handleIgloohomeConnect}
+                    disabled={igloohomeLoading}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-50 transition-colors"
+                  >
+                    {igloohomeLoading ? (
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      </svg>
+                    )}
+                    Connect igloohome Account
+                  </button>
+                  {igloohomeError && <p className="mt-2 text-xs text-red-600">{igloohomeError}</p>}
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 p-3 bg-forest-50 border border-forest-200 rounded-xl">
+                    <svg className="w-4 h-4 text-forest-700 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-xs font-semibold text-forest-800">igloohome account linked via Seam</p>
                   </div>
-                  {seamDeviceId && (
-                    <p className="mt-1.5 text-xs text-gray-400 font-mono truncate">{seamDeviceId}</p>
+
+                  {seamDevices.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-semibold text-forest-800 mb-2">Select keybox device</label>
+                      <div className="flex items-center gap-3">
+                        <select
+                          value={seamDeviceId || ''}
+                          onChange={e => handleSaveDevice(e.target.value)}
+                          className="flex-1 px-3 py-2.5 rounded-xl border border-warm-200 text-forest-900 text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent"
+                        >
+                          <option value="">Select a device…</option>
+                          {seamDevices.map(d => (
+                            <option key={d.device_id} value={d.device_id}>{d.display_name}</option>
+                          ))}
+                        </select>
+                        {igloohomeSaved && <span className="text-xs text-forest-700 font-medium whitespace-nowrap">✓ Saved</span>}
+                      </div>
+                      {seamDeviceId && (
+                        <p className="mt-1.5 text-xs text-gray-400 font-mono truncate">{seamDeviceId}</p>
+                      )}
+                    </div>
                   )}
+
+                  {igloohomeError && <p className="text-xs text-red-600">{igloohomeError}</p>}
+
+                  <button
+                    type="button"
+                    onClick={handleIgloohomeDisconnect}
+                    disabled={igloohomeLoading}
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-red-200 text-red-700 rounded-xl text-sm font-semibold hover:bg-red-50 disabled:opacity-50 transition-colors"
+                  >
+                    {igloohomeLoading ? (
+                      <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                    ) : null}
+                    Disconnect
+                  </button>
                 </div>
               )}
-
-              {igloohomeError && <p className="text-xs text-red-600">{igloohomeError}</p>}
-
-              <button
-                type="button"
-                onClick={handleIgloohomeDisconnect}
-                disabled={igloohomeLoading}
-                className="inline-flex items-center gap-2 px-4 py-2 border border-red-200 text-red-700 rounded-xl text-sm font-semibold hover:bg-red-50 disabled:opacity-50 transition-colors"
-              >
-                {igloohomeLoading ? (
-                  <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                ) : null}
-                Disconnect
-              </button>
             </div>
           )}
         </div>

@@ -2547,5 +2547,151 @@
       "Step 6: Verify the section design matches the existing access code display in style and spacing"
     ],
     "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Platform-level igloohome API credentials allow algoPIN generation without Seam",
+    "notes": "igloohome has its own REST API (api.igloohome.co) using OAuth2 Client Credentials. GymAccess holds platform credentials; no per-lock fee. Seam is no longer required for basic algoPIN generation. Exact token URL and algoPIN endpoint to verify at developer.igloocompany.co.",
+    "steps": [
+      "Step 1: Add IGLOOHOME_CLIENT_ID and IGLOOHOME_CLIENT_SECRET to .env.example as platform-level credentials",
+      "Step 2: Add IGLOOHOME_TOKEN_URL (e.g. https://auth.igloohome.co/oauth2/token) to .env.example",
+      "Step 3: Add IGLOOHOME_API_URL (e.g. https://api.igloohome.co/v2) to .env.example",
+      "Step 4: Create api/src/utils/igloohome.ts with isIgloohomeConfigured(), getAccessToken() (OAuth2 client_credentials, caches token with TTL), and createAlgoPin(lockId, startsAt, endsAt) functions",
+      "Step 5: Verify that if credentials are not set, integration routes return 503 with clear error",
+      "Step 6: Verify token is fetched with grant_type=client_credentials, client_id, client_secret, cached in memory until exp-60s"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Admin enters their igloohome lockId in Settings to enable direct algoPIN integration (free tier)",
+    "notes": "Admin finds their lockId in the igloohome app under Device Settings. No Seam Connect Webview needed. DB: add gyms.igloohome_lock_id (text, nullable) column. PUT /admin/settings already exists; extend it to accept igloohome_lock_id.",
+    "steps": [
+      "Step 1: Add igloohome_lock_id column (text, nullable) to gyms table via migration",
+      "Step 2: In Settings page, add a 'Smart Lock (igloohome Direct - Free)' section separate from the Seam section",
+      "Step 3: Section shows a text input for Lock ID with helper text 'Find this in your igloohome app under Device Settings'",
+      "Step 4: Admin enters lockId and clicks Save - calls PUT /admin/settings with { igloohome_lock_id: '...' }",
+      "Step 5: Verify lockId is stored in gyms.igloohome_lock_id",
+      "Step 6: Verify Settings page reloads and shows 'Connected' status with the saved lockId",
+      "Step 7: Admin can clear the lockId to disable direct integration (sets column to NULL)"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Member activation creates a time-bound algoPIN via igloohome direct API when igloohome_lock_id is configured",
+    "notes": "Create algoPIN via POST /v2/locks/{lockId}/algopin (or /algopin/hourlybound - verify exact endpoint from igloohome docs). Body: { startDatetime, endDatetime }. Response contains the 7-9 digit PIN and a codeId for deletion. Falls back gracefully if API fails (member still activates).",
+    "steps": [
+      "Step 1: Configure igloohome_lock_id in gym settings and platform credentials in .env",
+      "Step 2: Activate a member via Stripe checkout.session.completed webhook",
+      "Step 3: Verify activateMemberAccess calls igloohome API to create algoPIN with startsAt=now, endsAt=next billing date",
+      "Step 4: Verify the returned 7-9 digit algoPIN is stored encrypted in access_codes with source='igloohome_direct'",
+      "Step 5: Verify provider_code_id stores the igloohome codeId for future deletion",
+      "Step 6: Verify GET /admin/members/:id returns decrypted algoPIN",
+      "Step 7: Verify member still activates successfully if igloohome API call fails (graceful degradation, error logged)",
+      "Step 8: Verify welcome email contains the algoPIN"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "igloohome direct: subscription renewal creates new algoPIN for the next billing period",
+    "steps": [
+      "Step 1: Set up active member with igloohome_lock_id configured (direct integration)",
+      "Step 2: Simulate invoice.payment_succeeded webhook for renewal",
+      "Step 3: Verify old algoPIN is deleted via igloohome API DELETE endpoint using stored provider_code_id",
+      "Step 4: Verify new algoPIN is created for next billing period via igloohome API",
+      "Step 5: Verify new PIN is stored encrypted in access_codes table with updated provider_code_id",
+      "Step 6: Verify payment receipt notification contains the new PIN"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "igloohome direct: subscription cancellation or payment failure deletes the algoPIN via igloohome API",
+    "steps": [
+      "Step 1: Set up active member with igloohome direct integration and active algoPIN",
+      "Step 2: Simulate customer.subscription.deleted webhook",
+      "Step 3: Verify igloohome API DELETE is called with stored provider_code_id to revoke the PIN",
+      "Step 4: Verify access_codes record is marked invalid or removed",
+      "Step 5: Simulate invoice.payment_failed webhook for a different active member",
+      "Step 6: Verify igloohome API DELETE is called to revoke PIN during past_due transition",
+      "Step 7: Verify cancellation email informs member keybox access is revoked"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Admin can manually regenerate igloohome direct algoPIN from member detail page",
+    "steps": [
+      "Step 1: Navigate to active member detail page with igloohome direct integration configured",
+      "Step 2: Click 'Regenerate PIN' button",
+      "Step 3: Verify POST /admin/members/:id/igloohome/regenerate deletes old PIN via igloohome API",
+      "Step 4: Verify new algoPIN is created for remaining subscription period",
+      "Step 5: Verify new PIN is stored encrypted with updated provider_code_id",
+      "Step 6: Verify UI updates to show new PIN without page reload"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Seam integration is a paid add-on: gyms table has seam_tier column ('none' or 'active'), all Seam routes require seam_tier='active'",
+    "notes": "Seam charges per device/month. GymAccess wraps this as a paid add-on priced via SEAM_ADDON_PRICE env var (monthly, in cents). All existing Seam routes (/admin/igloohome/connect, /admin/igloohome/devices, /admin/igloohome/status, /admin/settings/igloohome, /admin/members/:id/igloohome/regenerate when Seam path) must check seam_tier='active' and return 402 Payment Required with a clear upgrade message otherwise.",
+    "steps": [
+      "Step 1: Add seam_tier column (text, default 'none') to gyms table via migration",
+      "Step 2: Verify seam_tier accepts values: 'none', 'active'",
+      "Step 3: Verify existing gyms default to seam_tier='none' after migration",
+      "Step 4: Add SEAM_ADDON_PRICE to .env.example (monthly price in cents, e.g. 14900)",
+      "Step 5: Add seam_tier middleware check to all Seam-specific routes - return 402 { error: 'Seam integration requires upgrade', upgradeUrl: '/admin/settings' } if seam_tier != 'active'",
+      "Step 6: Verify seam_tier='active' gym can access all Seam routes normally",
+      "Step 7: Verify migration is idempotent"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Admin can upgrade to Seam add-on via Stripe checkout from the Plan & Billing section",
+    "notes": "POST /admin/saas/seam-addon creates Stripe checkout session with SEAM_ADDON_PRICE. On checkout.session.completed with addon='seam' metadata, webhook sets seam_tier='active'. Uses same SaaS customer (saas_stripe_customer_id) to attach to existing Stripe customer.",
+    "steps": [
+      "Step 1: Log in as admin and navigate to Settings > Plan & Billing section",
+      "Step 2: Verify 'Smart Lock via Seam (Premium)' add-on row is listed with monthly price",
+      "Step 3: Click 'Add Seam Integration' button",
+      "Step 4: Verify POST /admin/saas/seam-addon creates a Stripe checkout session with correct price",
+      "Step 5: Simulate checkout.session.completed webhook with gymId metadata and addon='seam'",
+      "Step 6: Verify gym's seam_tier is set to 'active' in the database",
+      "Step 7: Verify Settings page now shows Seam Connect Webview section as active/unlocked",
+      "Step 8: Verify invoice.* webhooks for the Seam add-on subscription are handled correctly"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "activateMemberAccess uses igloohome direct API first, falls back to Seam if seam_tier='active', then internal PIN",
+    "notes": "Priority order: (1) igloohome_direct if igloohome_lock_id is set and platform credentials are configured, (2) Seam if seam_tier='active' and seam_device_id is set, (3) internal random/shared PIN. access_codes.source field identifies which path was used.",
+    "steps": [
+      "Step 1: Set igloohome_lock_id for gym (seam_tier='none') and activate member",
+      "Step 2: Verify igloohome direct API is used, access_codes.source='igloohome_direct'",
+      "Step 3: Clear igloohome_lock_id, set seam_device_id and seam_tier='active', activate member",
+      "Step 4: Verify Seam API is used, access_codes.source='igloohome'",
+      "Step 5: Clear both, activate member",
+      "Step 6: Verify fallback to internal PIN, access_codes.source='internal'",
+      "Step 7: Set both igloohome_lock_id and seam_device_id - verify direct API takes priority"
+    ],
+    "passes": true
+  },
+  {
+    "category": "style",
+    "description": "Settings Smart Lock section shows both free (igloohome Direct) and paid (Seam) options with clear differentiation",
+    "steps": [
+      "Step 1: Navigate to Settings with no integrations configured and seam_tier='none'",
+      "Step 2: Verify 'Free' badge on igloohome Direct section with lockId input field",
+      "Step 3: Verify 'Premium' badge and monthly price on Seam section with greyed-out or locked state",
+      "Step 4: Verify Seam section shows 'Upgrade' CTA button styled distinctly",
+      "Step 5: Verify igloohome Direct section has helper text explaining where to find the lockId",
+      "Step 6: Verify Seam section lists premium benefits: device auto-discovery, real-time activity logs, multi-lock support",
+      "Step 7: Switch to seam_tier='active' - verify Seam section is now fully interactive (Connect Webview button enabled)",
+      "Step 8: Section design matches Nordic Forest Industrial style"
+    ],
+    "passes": true
   }
 ]

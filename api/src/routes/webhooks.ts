@@ -3,6 +3,7 @@ import { pool } from '../db';
 import crypto from 'crypto';
 import { activateMemberAccess } from './subscriptions';
 import { deleteAccessCode } from '../utils/seam';
+import { deleteAlgoPin } from '../utils/igloohome';
 
 export const webhookRoutes = Router();
 
@@ -27,8 +28,15 @@ function verifyStripeSignature(payload: Buffer | string, sigHeader: string, secr
   }
 }
 
-// Revoke all active access codes for a member (DB + Seam if applicable)
+// Revoke all active access codes for a member (DB + provider if applicable)
 async function revokeAccessCodes(memberId: string) {
+  // Get the gym's lock_id in case we need to delete igloohome_direct PINs
+  const gymData = await pool.query(
+    'SELECT g.igloohome_lock_id FROM members m JOIN gyms g ON m.gym_id = g.gym_id WHERE m.member_id = $1',
+    [memberId]
+  );
+  const igloohomeLockId = gymData.rows[0]?.igloohome_lock_id;
+
   const activeCodes = await pool.query(
     "SELECT provider_code_id, source FROM access_codes WHERE member_id = $1 AND valid_to IS NULL",
     [memberId]
@@ -37,6 +45,10 @@ async function revokeAccessCodes(memberId: string) {
     if (row.source === 'igloohome' && row.provider_code_id) {
       await deleteAccessCode(row.provider_code_id).catch(err =>
         console.error('Seam deleteAccessCode failed:', err)
+      );
+    } else if (row.source === 'igloohome_direct' && row.provider_code_id && igloohomeLockId) {
+      await deleteAlgoPin(igloohomeLockId, row.provider_code_id).catch(err =>
+        console.error('igloohome direct deleteAlgoPin failed:', err)
       );
     }
   }
@@ -109,16 +121,17 @@ async function handleMemberEvent(event: any) {
             [memberId]
           );
           if (activeCode.rows.length === 0) {
-            // No active code — create one (handles igloohome + internal)
+            // No active code — create one (handles all providers)
             await activateMemberAccess(memberId, periodEnd);
           } else {
-            // On renewal, refresh igloohome algoPIN for new billing period
+            // On renewal, refresh provider algoPIN for new billing period
             const codeInfo = await pool.query(
               "SELECT source, provider_code_id FROM access_codes WHERE member_id = $1 AND valid_to IS NULL LIMIT 1",
               [memberId]
             );
-            if (codeInfo.rows[0]?.source === 'igloohome') {
-              // Revoke old and create new Seam PIN for next period
+            const src = codeInfo.rows[0]?.source;
+            if (src === 'igloohome' || src === 'igloohome_direct') {
+              // Revoke old and create new PIN for next period
               await revokeAccessCodes(memberId);
               await activateMemberAccess(memberId, periodEnd);
             }
@@ -222,12 +235,22 @@ async function handleSaasEvent(event: any) {
     case 'checkout.session.completed': {
       const session = event.data.object;
       const gymId = session.metadata?.gymId;
+      const addon = session.metadata?.addon;
       if (gymId) {
-        await pool.query(
-          `UPDATE gyms SET saas_status = 'active', saas_subscription_id = $1, saas_stripe_customer_id = $2
-           WHERE gym_id = $3`,
-          [session.subscription, session.customer, gymId]
-        );
+        if (addon === 'seam') {
+          // Seam add-on purchased: activate seam_tier
+          await pool.query(
+            "UPDATE gyms SET seam_tier = 'active' WHERE gym_id = $1",
+            [gymId]
+          );
+        } else {
+          // GymAccess SaaS subscription
+          await pool.query(
+            `UPDATE gyms SET saas_status = 'active', saas_subscription_id = $1, saas_stripe_customer_id = $2
+             WHERE gym_id = $3`,
+            [session.subscription, session.customer, gymId]
+          );
+        }
       }
       break;
     }

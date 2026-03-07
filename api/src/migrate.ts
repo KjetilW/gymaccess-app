@@ -141,6 +141,12 @@ const migrations = `
   -- Track the provider's access code ID (e.g. Seam access_code_id) and source
   ALTER TABLE access_codes ADD COLUMN IF NOT EXISTS provider_code_id VARCHAR(255);
   ALTER TABLE access_codes ADD COLUMN IF NOT EXISTS source VARCHAR(50) NOT NULL DEFAULT 'internal';
+
+  -- igloohome direct API (free tier): lock ID entered manually by admin
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS igloohome_lock_id VARCHAR(255);
+
+  -- Seam as paid add-on tier ('none' or 'active')
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS seam_tier VARCHAR(20) NOT NULL DEFAULT 'none';
 `;
 
 export async function runMigrations() {

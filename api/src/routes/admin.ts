@@ -7,6 +7,7 @@ import {
   createConnectWebview, getConnectWebviewStatus,
   listDevices, createOfflineAccessCode, deleteAccessCode,
 } from '../utils/seam';
+import { isIgloohomeConfigured, createAlgoPin, deleteAlgoPin } from '../utils/igloohome';
 import Stripe from 'stripe';
 
 const stripe = process.env.STRIPE_API_KEY
@@ -114,9 +115,11 @@ adminRoutes.get('/members/:memberId', async (req: AuthRequest, res) => {
     const result = await pool.query(
       `SELECT m.*, ac.code as access_code, ac.source as access_source,
               ac.provider_code_id, ac.valid_from as access_valid_from,
+              ac.valid_to as access_valid_to,
               s.provider, s.provider_subscription_id, s.start_date, s.end_date as subscription_end_date,
               s.status as subscription_status,
-              g.seam_device_id, g.seam_connected_account_id
+              g.seam_device_id, g.seam_connected_account_id, g.seam_tier,
+              g.igloohome_lock_id
        FROM members m
        LEFT JOIN access_codes ac ON m.member_id = ac.member_id AND ac.valid_to IS NULL
        LEFT JOIN subscriptions s ON s.subscription_id = (
@@ -134,12 +137,15 @@ adminRoutes.get('/members/:memberId', async (req: AuthRequest, res) => {
     }
 
     const member = result.rows[0];
-    const igloohomeConfigured = !!(member.seam_device_id && (isSeamConfigured() || isSeamMockMode()));
+    const igloohomeDirectConfigured = isIgloohomeConfigured() && !!member.igloohome_lock_id;
+    const igloohomeSeamConfigured = !!(member.seam_device_id && (isSeamConfigured() || isSeamMockMode()) && member.seam_tier === 'active');
+    const igloohomeConfigured = igloohomeDirectConfigured || igloohomeSeamConfigured;
 
     res.json({
       ...member,
       access_code: safeDecrypt(member.access_code),
       igloohome_configured: igloohomeConfigured,
+      igloohome_direct_configured: igloohomeDirectConfigured,
     });
   } catch (err) {
     console.error('Get member detail error:', err);
@@ -494,7 +500,7 @@ adminRoutes.post('/saas/portal', async (req: AuthRequest, res) => {
 // Update gym settings
 adminRoutes.put('/settings', async (req: AuthRequest, res) => {
   try {
-    const { membershipPrice, billingInterval, accessType } = req.body;
+    const { membershipPrice, billingInterval, accessType, igloohome_lock_id } = req.body;
 
     const updates: string[] = [];
     const values: any[] = [];
@@ -511,6 +517,11 @@ adminRoutes.put('/settings', async (req: AuthRequest, res) => {
     if (accessType) {
       updates.push(`access_type = $${paramCount++}`);
       values.push(accessType);
+    }
+    if (igloohome_lock_id !== undefined) {
+      // Allow setting to null (empty string -> null) to clear the lock ID
+      updates.push(`igloohome_lock_id = $${paramCount++}`);
+      values.push(igloohome_lock_id === '' ? null : igloohome_lock_id);
     }
 
     updates.push(`updated_at = NOW()`);
@@ -530,9 +541,18 @@ adminRoutes.put('/settings', async (req: AuthRequest, res) => {
 
 // ─── Igloohome / Seam Integration Routes ─────────────────────────────────────
 
-function seamRequired(req: any, res: any): boolean {
+async function seamRequired(req: AuthRequest, res: any): Promise<boolean> {
   if (!isSeamConfigured() && !isSeamMockMode()) {
     res.status(503).json({ error: 'Seam not configured. Set SEAM_API_KEY environment variable.' });
+    return false;
+  }
+  // Check that the gym has an active Seam tier subscription
+  const gymResult = await pool.query('SELECT seam_tier FROM gyms WHERE gym_id = $1', [req.gymId]);
+  if (gymResult.rows.length > 0 && gymResult.rows[0].seam_tier !== 'active') {
+    res.status(402).json({
+      error: 'Seam integration requires upgrade',
+      upgradeUrl: '/admin/settings',
+    });
     return false;
   }
   return true;
@@ -540,7 +560,7 @@ function seamRequired(req: any, res: any): boolean {
 
 // POST /admin/igloohome/connect — create Seam Connect Webview and return URL
 adminRoutes.post('/igloohome/connect', async (req: AuthRequest, res) => {
-  if (!seamRequired(req, res)) return;
+  if (!await seamRequired(req, res)) return;
   try {
     const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     // Placeholder; Seam/mock will return the actual URL with the webview ID embedded
@@ -563,7 +583,7 @@ adminRoutes.post('/igloohome/connect', async (req: AuthRequest, res) => {
 
 // GET /admin/igloohome/status?connect_webview_id=... — check webview status and save connected_account_id
 adminRoutes.get('/igloohome/status', async (req: AuthRequest, res) => {
-  if (!seamRequired(req, res)) return;
+  if (!await seamRequired(req, res)) return;
   try {
     const { connect_webview_id } = req.query as { connect_webview_id?: string };
     if (!connect_webview_id) return res.status(400).json({ error: 'connect_webview_id required' });
@@ -587,7 +607,7 @@ adminRoutes.get('/igloohome/status', async (req: AuthRequest, res) => {
 
 // GET /admin/igloohome/devices — list igloohome devices for the connected account
 adminRoutes.get('/igloohome/devices', async (req: AuthRequest, res) => {
-  if (!seamRequired(req, res)) return;
+  if (!await seamRequired(req, res)) return;
   try {
     const gymResult = await pool.query(
       'SELECT seam_connected_account_id FROM gyms WHERE gym_id = $1',
@@ -608,7 +628,7 @@ adminRoutes.get('/igloohome/devices', async (req: AuthRequest, res) => {
 
 // PUT /admin/settings/igloohome — save selected device_id
 adminRoutes.put('/settings/igloohome', async (req: AuthRequest, res) => {
-  if (!seamRequired(req, res)) return;
+  if (!await seamRequired(req, res)) return;
   try {
     const { device_id } = req.body;
     if (!device_id) return res.status(400).json({ error: 'device_id required' });
@@ -627,7 +647,7 @@ adminRoutes.put('/settings/igloohome', async (req: AuthRequest, res) => {
 
 // DELETE /admin/igloohome/connect — disconnect igloohome account
 adminRoutes.delete('/igloohome/connect', async (req: AuthRequest, res) => {
-  if (!seamRequired(req, res)) return;
+  if (!await seamRequired(req, res)) return;
   try {
     await pool.query(
       'UPDATE gyms SET seam_connected_account_id = NULL, seam_device_id = NULL, updated_at = NOW() WHERE gym_id = $1',
@@ -642,15 +662,18 @@ adminRoutes.delete('/igloohome/connect', async (req: AuthRequest, res) => {
 
 // POST /admin/members/:memberId/igloohome/regenerate — regenerate algoPIN for a member
 adminRoutes.post('/members/:memberId/igloohome/regenerate', async (req: AuthRequest, res) => {
-  if (!seamRequired(req, res)) return;
   try {
     const { memberId } = req.params;
 
     const result = await pool.query(
-      `SELECT m.*, g.seam_device_id, g.name as gym_name, s.end_date
+      `SELECT m.*, g.seam_device_id, g.seam_tier, g.igloohome_lock_id, g.name as gym_name,
+              s.end_date
        FROM members m
        JOIN gyms g ON m.gym_id = g.gym_id
-       LEFT JOIN subscriptions s ON m.member_id = s.member_id AND s.status = 'active'
+       LEFT JOIN subscriptions s ON s.subscription_id = (
+         SELECT s2.subscription_id FROM subscriptions s2
+         WHERE s2.member_id = m.member_id ORDER BY s2.created_at DESC LIMIT 1
+       )
        WHERE m.member_id = $1 AND m.gym_id = $2`,
       [memberId, req.gymId]
     );
@@ -658,19 +681,30 @@ adminRoutes.post('/members/:memberId/igloohome/regenerate', async (req: AuthRequ
     if (result.rows.length === 0) return res.status(404).json({ error: 'Member not found' });
     const member = result.rows[0];
 
-    if (!member.seam_device_id) {
-      return res.status(400).json({ error: 'igloohome not configured for this gym' });
+    const useIgloohomeDirect = isIgloohomeConfigured() && !!member.igloohome_lock_id;
+    const useSeam = !useIgloohomeDirect && (isSeamConfigured() || isSeamMockMode()) &&
+                    !!member.seam_device_id && member.seam_tier === 'active';
+
+    if (!useIgloohomeDirect && !useSeam) {
+      return res.status(400).json({ error: 'No igloohome integration configured for this gym' });
     }
 
-    // Delete existing Seam code(s)
+    const startsAt = new Date();
+    const endsAt = member.end_date ? new Date(member.end_date) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    // Delete existing provider codes
     const existingCodes = await pool.query(
-      "SELECT provider_code_id FROM access_codes WHERE member_id = $1 AND valid_to IS NULL AND source = 'igloohome'",
+      "SELECT provider_code_id, source FROM access_codes WHERE member_id = $1 AND valid_to IS NULL",
       [memberId]
     );
     for (const row of existingCodes.rows) {
-      if (row.provider_code_id) {
+      if (row.source === 'igloohome' && row.provider_code_id) {
         await deleteAccessCode(row.provider_code_id).catch(err =>
           console.error('Failed to delete old Seam code on regenerate:', err)
+        );
+      } else if (row.source === 'igloohome_direct' && row.provider_code_id && member.igloohome_lock_id) {
+        await deleteAlgoPin(member.igloohome_lock_id, row.provider_code_id).catch(err =>
+          console.error('Failed to delete old igloohome direct PIN on regenerate:', err)
         );
       }
     }
@@ -681,23 +715,79 @@ adminRoutes.post('/members/:memberId/igloohome/regenerate', async (req: AuthRequ
       [memberId]
     );
 
-    // Create new algoPIN
-    const startsAt = new Date();
-    const endsAt = member.end_date ? new Date(member.end_date) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-    const seamResult = await createOfflineAccessCode(member.seam_device_id, member.name, startsAt, endsAt);
+    let newCode: string;
+    let newProviderCodeId: string | null = null;
+    let newSource: string;
 
-    if (!seamResult) {
-      return res.status(500).json({ error: 'Failed to create new igloohome PIN via Seam' });
+    if (useIgloohomeDirect) {
+      const igResult = await createAlgoPin(
+        member.igloohome_lock_id,
+        startsAt,
+        endsAt,
+        `GymAccess - ${member.name}`
+      );
+      if (!igResult) {
+        return res.status(500).json({ error: 'Failed to create new igloohome direct algoPIN' });
+      }
+      newCode = igResult.pin;
+      newProviderCodeId = igResult.pinId;
+      newSource = 'igloohome_direct';
+    } else {
+      const seamResult = await createOfflineAccessCode(member.seam_device_id, member.name, startsAt, endsAt);
+      if (!seamResult) {
+        return res.status(500).json({ error: 'Failed to create new igloohome PIN via Seam' });
+      }
+      newCode = seamResult.code;
+      newProviderCodeId = seamResult.access_code_id;
+      newSource = 'igloohome';
     }
 
     await pool.query(
-      "INSERT INTO access_codes (member_id, code, valid_from, source, provider_code_id) VALUES ($1, $2, NOW(), 'igloohome', $3)",
-      [memberId, encryptCode(seamResult.code), seamResult.access_code_id]
+      "INSERT INTO access_codes (member_id, code, valid_from, source, provider_code_id) VALUES ($1, $2, NOW(), $3, $4)",
+      [memberId, encryptCode(newCode), newSource, newProviderCodeId]
     );
 
-    res.json({ code: seamResult.code, access_code_id: seamResult.access_code_id });
+    res.json({ code: newCode, provider_code_id: newProviderCodeId, source: newSource });
   } catch (err) {
     console.error('Igloohome regenerate error:', err);
     res.status(500).json({ error: 'Failed to regenerate igloohome PIN' });
+  }
+});
+
+// POST /admin/saas/seam-addon — create Stripe checkout for Seam add-on subscription
+adminRoutes.post('/saas/seam-addon', async (req: AuthRequest, res) => {
+  try {
+    if (!stripe) return res.status(503).json({ error: 'Stripe not configured' });
+
+    const addonPrice = parseInt(process.env.SEAM_ADDON_PRICE || '14900');
+    const adminResult = await pool.query(
+      'SELECT email FROM admins WHERE gym_id = $1 LIMIT 1',
+      [req.gymId]
+    );
+    if (adminResult.rows.length === 0) return res.status(404).json({ error: 'Admin not found' });
+
+    const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      line_items: [{
+        price_data: {
+          currency: 'nok',
+          product_data: { name: 'GymAccess Seam Smart Lock Integration' },
+          unit_amount: addonPrice,
+          recurring: { interval: 'month' },
+        },
+        quantity: 1,
+      }],
+      customer_email: adminResult.rows[0].email,
+      metadata: { gymId: req.gymId, addon: 'seam' },
+      success_url: `${frontendUrl}/admin/settings`,
+      cancel_url: `${frontendUrl}/admin/settings`,
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('Seam addon checkout error:', err);
+    res.status(500).json({ error: 'Failed to create Seam addon checkout session' });
   }
 });

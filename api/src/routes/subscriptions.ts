@@ -3,6 +3,7 @@ import { pool } from '../db';
 import crypto from 'crypto';
 import { encryptCode, decryptCode, isEncrypted } from '../utils/crypto';
 import { isSeamConfigured, isSeamMockMode, createOfflineAccessCode, deleteAccessCode } from '../utils/seam';
+import { isIgloohomeConfigured, createAlgoPin, deleteAlgoPin } from '../utils/igloohome';
 import Stripe from 'stripe';
 
 const stripe = process.env.STRIPE_API_KEY
@@ -21,7 +22,8 @@ function generatePin(length: number = 4): string {
 export async function activateMemberAccess(memberId: string, subscriptionEndDate?: Date): Promise<string | null> {
   const memberResult = await pool.query(
     `SELECT m.*, g.access_type, g.shared_pin, g.name as gym_name,
-            g.seam_device_id, g.seam_connected_account_id
+            g.seam_device_id, g.seam_connected_account_id, g.seam_tier,
+            g.igloohome_lock_id
      FROM members m
      JOIN gyms g ON m.gym_id = g.gym_id
      WHERE m.member_id = $1`,
@@ -31,28 +33,59 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
 
   const member = memberResult.rows[0];
   const codeLength = parseInt(process.env.ACCESS_CODE_LENGTH || '4');
-  const useSeam = (isSeamConfigured() || isSeamMockMode()) && !!member.seam_device_id;
+
+  // Priority: (1) igloohome direct if lock_id set and credentials configured
+  //           (2) Seam if seam_tier='active' and seam_device_id set
+  //           (3) internal PIN
+  const useIgloohomeDirect = isIgloohomeConfigured() && !!member.igloohome_lock_id;
+  const useSeam = !useIgloohomeDirect && (isSeamConfigured() || isSeamMockMode()) &&
+                  !!member.seam_device_id && member.seam_tier === 'active';
 
   let code: string;
-  let seamAccessCodeId: string | null = null;
-  let seamError: string | null = null;
+  let providerCodeId: string | null = null;
+  let codeSource: string = 'internal';
+  let providerError: string | null = null;
 
-  if (useSeam) {
+  const startsAt = new Date();
+  const endsAt = subscriptionEndDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+  if (useIgloohomeDirect) {
+    // Create algoPIN via igloohome direct API
+    try {
+      const result = await createAlgoPin(
+        member.igloohome_lock_id,
+        startsAt,
+        endsAt,
+        `GymAccess - ${member.name}`
+      );
+      if (result) {
+        code = result.pin;
+        providerCodeId = result.pinId;
+        codeSource = 'igloohome_direct';
+      } else {
+        providerError = 'igloohome API returned null';
+        code = generatePin(codeLength);
+      }
+    } catch (err: any) {
+      providerError = String(err?.message || err);
+      console.error('igloohome direct PIN creation failed, falling back to internal PIN:', providerError);
+      code = generatePin(codeLength);
+    }
+  } else if (useSeam) {
     // Create igloohome algoPIN via Seam
-    const startsAt = new Date();
-    const endsAt = subscriptionEndDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // default 30 days
     try {
       const result = await createOfflineAccessCode(member.seam_device_id, member.name, startsAt, endsAt);
       if (result) {
         code = result.code;
-        seamAccessCodeId = result.access_code_id;
+        providerCodeId = result.access_code_id;
+        codeSource = 'igloohome';
       } else {
-        seamError = 'Seam PIN creation returned null';
+        providerError = 'Seam PIN creation returned null';
         code = generatePin(codeLength);
       }
     } catch (err: any) {
-      seamError = String(err?.message || err);
-      console.error('Seam PIN creation failed, falling back to internal PIN:', seamError);
+      providerError = String(err?.message || err);
+      console.error('Seam PIN creation failed, falling back to internal PIN:', providerError);
       code = generatePin(codeLength);
     }
   } else if (member.access_type === 'shared_pin') {
@@ -79,7 +112,7 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
     }
   }
 
-  // Revoke existing codes (also delete from Seam if applicable)
+  // Revoke existing codes (also delete from provider if applicable)
   const existingCodes = await pool.query(
     "SELECT provider_code_id, source FROM access_codes WHERE member_id = $1 AND valid_to IS NULL",
     [memberId]
@@ -88,6 +121,10 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
     if (existing.source === 'igloohome' && existing.provider_code_id) {
       await deleteAccessCode(existing.provider_code_id).catch(err =>
         console.error('Failed to delete Seam access code on revoke:', err)
+      );
+    } else if (existing.source === 'igloohome_direct' && existing.provider_code_id && member.igloohome_lock_id) {
+      await deleteAlgoPin(member.igloohome_lock_id, existing.provider_code_id).catch(err =>
+        console.error('Failed to delete igloohome direct PIN on revoke:', err)
       );
     }
   }
@@ -98,22 +135,21 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
   );
 
   // Store encrypted code with source and provider_code_id
-  const source = useSeam && !seamError ? 'igloohome' : 'internal';
   await pool.query(
     "INSERT INTO access_codes (member_id, code, valid_from, source, provider_code_id) VALUES ($1, $2, NOW(), $3, $4)",
-    [memberId, encryptCode(code), source, seamAccessCodeId]
+    [memberId, encryptCode(code!), codeSource, providerCodeId]
   );
 
   // Build welcome notification body
-  let codeDisplay = code;
   let emailBody: string;
-  if (useSeam && !seamError) {
-    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour igloohome keybox access PIN: ${codeDisplay}\n\nUse this code on the Keybox 3 at the gym entrance. The code is time-bound to your membership period.\n\nBest regards,\n${member.gym_name}`;
-  } else if (seamError) {
+  if ((useIgloohomeDirect || useSeam) && !providerError) {
+    const lockType = useIgloohomeDirect ? 'igloohome keybox' : 'Keybox 3';
+    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour ${lockType} access PIN: ${code}\n\nUse this code on the keybox at the gym entrance. The code is time-bound to your membership period.\n\nBest regards,\n${member.gym_name}`;
+  } else if (providerError) {
     emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code will be provided separately by your gym administrator.\n\nBest regards,\n${member.gym_name}`;
-    console.error(`Seam error for member ${memberId}: ${seamError}`);
+    console.error(`Provider error for member ${memberId}: ${providerError}`);
   } else {
-    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code: ${codeDisplay}\n\nBest regards,\n${member.gym_name}`;
+    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code: ${code}\n\nBest regards,\n${member.gym_name}`;
   }
 
   await pool.query(

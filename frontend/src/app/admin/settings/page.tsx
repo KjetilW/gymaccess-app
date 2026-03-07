@@ -136,11 +136,9 @@ export default function SettingsPage() {
   const [igloohomeLockId, setIgloohomeLockId] = useState('');
   const [igloohomeClientId, setIgloohomeClientId] = useState('');
   const [igloohomeClientSecret, setIgloohomeClientSecret] = useState('');
-  const [igloohomeCredConfigured, setIgloohomeCredConfigured] = useState(false);
   // 0=disconnected, 1=enter credentials, 2=enter lock ID, 3=connected
   const [igloohomeStep, setIgloohomeStep] = useState(0);
   const [igloohomeLockSaving, setIgloohomeLockSaving] = useState(false);
-  const [igloohomeLockSaved, setIgloohomeLockSaved] = useState(false);
   const [igloohomeLockError, setIgloohomeLockError] = useState('');
 
   // Seam state
@@ -196,7 +194,6 @@ export default function SettingsPage() {
       // igloohome Direct state
       setIgloohomeLockId(gymData.igloohome_lock_id || '');
       setIgloohomeClientId(gymData.igloohome_client_id || '');
-      setIgloohomeCredConfigured(!!gymData.igloohome_configured);
       // Set starting step based on what's already configured
       if (gymData.igloohome_configured && gymData.igloohome_lock_id) {
         setIgloohomeStep(3); // fully connected
@@ -402,7 +399,6 @@ export default function SettingsPage() {
   const handleSaveIgloohomeLockId = async () => {
     setIgloohomeLockSaving(true);
     setIgloohomeLockError('');
-    setIgloohomeLockSaved(false);
     const token = localStorage.getItem('token');
     try {
       const body: Record<string, string> = {
@@ -419,11 +415,8 @@ export default function SettingsPage() {
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error('Failed to save');
-      const updated = await res.json();
-      setIgloohomeCredConfigured(!!updated.igloohome_configured);
+      await res.json();
       setIgloohomeClientSecret(''); // clear secret field after save
-      setIgloohomeLockSaved(true);
-      setTimeout(() => setIgloohomeLockSaved(false), 2500);
     } catch {
       setIgloohomeLockError('Failed to save settings. Please try again.');
     } finally {
@@ -745,7 +738,7 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => setIgloohomeStep(2)}
                   disabled={!igloohomeClientId.trim() || !igloohomeClientSecret.trim()}
-                  className="px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-40 transition-colors"
+                  className="px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-50 transition-colors"
                 >
                   Next
                 </button>
@@ -794,7 +787,7 @@ export default function SettingsPage() {
                     if (!igloohomeLockError) setIgloohomeStep(3);
                   }}
                   disabled={!igloohomeLockId.trim() || igloohomeLockSaving}
-                  className="px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-40 transition-colors"
+                  className="px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-50 transition-colors"
                 >
                   {igloohomeLockSaving ? 'Saving…' : 'Save & finish'}
                 </button>

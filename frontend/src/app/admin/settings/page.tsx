@@ -720,7 +720,7 @@ export default function SettingsPage() {
                     type="password"
                     value={igloohomeClientSecret}
                     onChange={e => setIgloohomeClientSecret(e.target.value)}
-                    placeholder="Paste your Client Secret"
+                    placeholder={settings?.igloohome_configured && !igloohomeClientSecret ? 'Leave blank to keep existing secret' : 'Paste your Client Secret'}
                     className="w-full px-4 py-3 rounded-xl border border-warm-200 text-forest-900 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent transition-all hover:border-forest-400"
                   />
                 </div>
@@ -737,7 +737,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setIgloohomeStep(2)}
-                  disabled={!igloohomeClientId.trim() || !igloohomeClientSecret.trim()}
+                  disabled={!igloohomeClientId.trim() || (!settings?.igloohome_configured && !igloohomeClientSecret.trim())}
                   className="px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-50 transition-colors"
                 >
                   Next

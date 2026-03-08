@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 interface GymSettings {
@@ -17,19 +15,10 @@ interface GymSettings {
   saas_status: string;
   saas_subscription_id: string | null;
   saas_stripe_customer_id: string | null;
-  trial_ends_at: string | null;
-  seam_connected_account_id: string | null;
-  seam_device_id: string | null;
-  seam_tier: string;
+  saas_plan: string;
   igloohome_lock_id: string | null;
   igloohome_client_id: string | null;
   igloohome_configured: boolean;
-}
-
-interface SeamDevice {
-  device_id: string;
-  display_name: string;
-  device_type: string;
 }
 
 interface NotificationTemplate {
@@ -93,16 +82,7 @@ function ConnectStatusBadge({ status }: { status: string }) {
   );
 }
 
-function daysUntil(dateStr: string): number {
-  const now = new Date();
-  const target = new Date(dateStr);
-  return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-}
-
 export default function SettingsPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
   const [settings, setSettings] = useState<GymSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -141,46 +121,8 @@ export default function SettingsPage() {
   const [igloohomeLockSaving, setIgloohomeLockSaving] = useState(false);
   const [igloohomeLockError, setIgloohomeLockError] = useState('');
 
-  // Seam state
-  const [seamConnected, setSeamConnected] = useState(false);
-  const [seamDeviceId, setSeamDeviceId] = useState<string | null>(null);
-  const [seamDevices, setSeamDevices] = useState<SeamDevice[]>([]);
-  const [igloohomeLoading, setIgloohomeLoading] = useState(false);
-  const [igloohomeError, setIgloohomeError] = useState('');
-  const [igloohomeSaved, setIgloohomeSaved] = useState(false);
-  const [seamAddonLoading, setSeamAddonLoading] = useState(false);
-  const [seamAddonError, setSeamAddonError] = useState('');
-
-  const fetchDevices = async (token: string) => {
-    try {
-      const res = await fetch(`${API_URL}/admin/igloohome/devices`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSeamDevices(data.devices || []);
-      }
-    } catch { /* ignore */ }
-  };
-
   useEffect(() => {
     const token = localStorage.getItem('token');
-
-    // Check if returning from Seam Connect Webview (real Seam uses connect_webview_id, mock uses seam_webview_id)
-    const webviewId = searchParams.get('connect_webview_id') || searchParams.get('seam_webview_id');
-    if (webviewId) {
-      // Check status and save connected_account_id
-      fetch(`${API_URL}/admin/igloohome/status?connect_webview_id=${webviewId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.json()).then(data => {
-        if (data.status === 'authorized') {
-          setSeamConnected(true);
-          fetchDevices(token!);
-        }
-      }).catch(() => {});
-      // Clean up URL
-      router.replace('/admin/settings');
-    }
 
     Promise.all([
       fetch(`${API_URL}/admin/gym`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
@@ -202,12 +144,6 @@ export default function SettingsPage() {
       } else {
         setIgloohomeStep(0); // nothing configured yet
       }
-
-      // Seam state from gym data
-      const connected = !!(gymData.seam_connected_account_id && !gymData.seam_connected_account_id.startsWith('pending:'));
-      setSeamConnected(connected);
-      setSeamDeviceId(gymData.seam_device_id || null);
-      if (connected) fetchDevices(token!);
 
       if (Array.isArray(templateData) && templateData.length > 0) {
         const merged = DEFAULT_TEMPLATES.map(def => {
@@ -340,62 +276,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleIgloohomeConnect = async () => {
-    setIgloohomeLoading(true);
-    setIgloohomeError('');
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`${API_URL}/admin/igloohome/connect`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to connect');
-      if (data.url) window.location.href = data.url;
-    } catch (err: any) {
-      setIgloohomeError(err.message || 'Failed to start igloohome connection.');
-    } finally {
-      setIgloohomeLoading(false);
-    }
-  };
-
-  const handleIgloohomeDisconnect = async () => {
-    setIgloohomeLoading(true);
-    setIgloohomeError('');
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`${API_URL}/admin/igloohome/connect`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to disconnect');
-      setSeamConnected(false);
-      setSeamDeviceId(null);
-      setSeamDevices([]);
-    } catch (err: any) {
-      setIgloohomeError(err.message || 'Failed to disconnect.');
-    } finally {
-      setIgloohomeLoading(false);
-    }
-  };
-
-  const handleSaveDevice = async (deviceId: string) => {
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`${API_URL}/admin/settings/igloohome`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ device_id: deviceId }),
-      });
-      if (!res.ok) throw new Error('Failed to save device');
-      setSeamDeviceId(deviceId);
-      setIgloohomeSaved(true);
-      setTimeout(() => setIgloohomeSaved(false), 2000);
-    } catch (err: any) {
-      setIgloohomeError(err.message || 'Failed to save device selection.');
-    }
-  };
-
   const handleSaveIgloohomeLockId = async (): Promise<boolean> => {
     setIgloohomeLockSaving(true);
     setIgloohomeLockError('');
@@ -430,25 +310,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSeamAddonCheckout = async () => {
-    setSeamAddonLoading(true);
-    setSeamAddonError('');
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`${API_URL}/admin/saas/seam-addon`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create checkout');
-      if (data.url) window.location.href = data.url;
-    } catch (err: any) {
-      setSeamAddonError(err.message || 'Failed to start Seam add-on checkout.');
-    } finally {
-      setSeamAddonLoading(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center py-16">
@@ -459,10 +320,6 @@ export default function SettingsPage() {
 
   const connectStatus = settings?.stripe_connect_status || 'not_connected';
   const connectAccountId = settings?.stripe_connect_account_id;
-  const saasStatus = settings?.saas_status || 'trial';
-  const trialEndsAt = settings?.trial_ends_at;
-  const trialDaysLeft = trialEndsAt ? daysUntil(trialEndsAt) : null;
-  const trialExpired = trialDaysLeft !== null && trialDaysLeft <= 0;
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
@@ -523,7 +380,7 @@ export default function SettingsPage() {
               {[
                 { value: 'shared_pin', label: 'Shared PIN', desc: 'One PIN for all active members.' },
                 { value: 'individual_pin', label: 'Individual PIN', desc: 'Unique PIN per member.' },
-                { value: 'smart_lock', label: 'Smart Lock', desc: 'Igloohome or Seam integration.' },
+                { value: 'smart_lock', label: 'Smart Lock', desc: 'igloohome lock integration.' },
               ].map(({ value, label, desc }) => (
                 <label
                   key={value}
@@ -830,167 +687,34 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Smart Lock via Seam — Premium */}
-      <div className="mt-6">
-        <div className={`bg-white rounded-2xl border p-6 ${settings?.seam_tier === 'active' ? 'border-warm-200' : 'border-warm-200 opacity-90'}`}>
-          <div className="flex items-center justify-between mb-1">
-            <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600">Smart Lock via Seam</h2>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">Premium</span>
-          </div>
-          <p className="text-sm text-gray-500 mb-5">
-            Connect your igloohome account via Seam for advanced multi-device management and automatic device discovery.
-          </p>
-
-          {settings?.seam_tier !== 'active' ? (
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                <svg className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                <div>
-                  <p className="text-xs font-semibold text-amber-800">Seam add-on not active</p>
-                  <p className="text-xs text-amber-700 mt-0.5">Upgrade to unlock automatic igloohome device discovery and multi-lock management via Seam.</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleSeamAddonCheckout}
-                  disabled={seamAddonLoading}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-600 text-white rounded-xl font-semibold text-sm hover:bg-amber-700 disabled:opacity-50 transition-colors"
-                >
-                  {seamAddonLoading ? (
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : null}
-                  Upgrade — NOK 149/month
-                </button>
-              </div>
-              {seamAddonError && <p className="text-xs text-red-600">{seamAddonError}</p>}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center gap-1.5">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-forest-100 text-forest-800">
-                  <span className="w-2 h-2 rounded-full bg-forest-600 inline-block" />
-                  Seam add-on active
-                </span>
-              </div>
-
-              {!seamConnected ? (
-                <>
-                  <p className="text-sm text-gray-500">Connect your igloohome account via Seam to enable automatic device discovery.</p>
-                  <button
-                    type="button"
-                    onClick={handleIgloohomeConnect}
-                    disabled={igloohomeLoading}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 disabled:opacity-50 transition-colors"
-                  >
-                    {igloohomeLoading ? (
-                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                      </svg>
-                    )}
-                    Connect igloohome Account
-                  </button>
-                  {igloohomeError && <p className="mt-2 text-xs text-red-600">{igloohomeError}</p>}
-                </>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3 p-3 bg-forest-50 border border-forest-200 rounded-xl">
-                    <svg className="w-4 h-4 text-forest-700 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="text-xs font-semibold text-forest-800">igloohome account linked via Seam</p>
-                  </div>
-
-                  {seamDevices.length > 0 && (
-                    <div>
-                      <label className="block text-sm font-semibold text-forest-800 mb-2">Select keybox device</label>
-                      <div className="flex items-center gap-3">
-                        <select
-                          value={seamDeviceId || ''}
-                          onChange={e => handleSaveDevice(e.target.value)}
-                          className="flex-1 px-3 py-2.5 rounded-xl border border-warm-200 text-forest-900 text-sm focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent"
-                        >
-                          <option value="">Select a device…</option>
-                          {seamDevices.map(d => (
-                            <option key={d.device_id} value={d.device_id}>{d.display_name}</option>
-                          ))}
-                        </select>
-                        {igloohomeSaved && <span className="text-xs text-forest-700 font-medium whitespace-nowrap">✓ Saved</span>}
-                      </div>
-                      {seamDeviceId && (
-                        <p className="mt-1.5 text-xs text-gray-400 font-mono truncate">{seamDeviceId}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {igloohomeError && <p className="text-xs text-red-600">{igloohomeError}</p>}
-
-                  <button
-                    type="button"
-                    onClick={handleIgloohomeDisconnect}
-                    disabled={igloohomeLoading}
-                    className="inline-flex items-center gap-2 px-4 py-2 border border-red-200 text-red-700 rounded-xl text-sm font-semibold hover:bg-red-50 disabled:opacity-50 transition-colors"
-                  >
-                    {igloohomeLoading ? (
-                      <span className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                    ) : null}
-                    Disconnect
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Plan & Billing Section */}
       <div className="mt-6">
         <div className="bg-white rounded-2xl border border-warm-200 p-6">
           <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600 mb-4">Plan &amp; Billing</h2>
 
-          {saasStatus === 'trial' && (
+          {settings?.saas_plan !== 'pro' && (
             <div className="space-y-4">
-              {trialDaysLeft !== null && !trialExpired && (
-                <div className="flex items-center gap-3 p-4 bg-forest-50 border border-forest-200 rounded-xl">
-                  <div className="text-center min-w-[3.5rem]">
-                    <div className="font-display font-bold text-2xl text-forest-900">{trialDaysLeft}</div>
-                    <div className="text-xs text-forest-600">days left</div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-forest-800">Free trial active</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Trial expires {trialEndsAt ? new Date(trialEndsAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3 p-4 bg-warm-50 border border-warm-200 rounded-xl">
+                <div>
+                  <p className="text-sm font-semibold text-forest-800">Starter plan — Free</p>
+                  <p className="text-xs text-gray-500 mt-0.5">3% platform fee on member payments (on top of Stripe processing fees)</p>
                 </div>
-              )}
+              </div>
 
-              {trialExpired && (
-                <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
-                  <svg className="w-5 h-5 text-red-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  <p className="text-sm text-red-800 font-medium">Your free trial has expired. Subscribe to continue using GymAccess.</p>
-                </div>
-              )}
-
-              <p className="text-sm text-gray-600">Subscribe to GymAccess to continue managing your gym after the trial.</p>
+              <p className="text-sm text-gray-600">Upgrade to Pro to reduce your platform fee to just 1%.</p>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="border border-warm-200 rounded-xl p-4">
                   <div className="font-display font-bold text-xl text-forest-900">NOK 299</div>
-                  <div className="text-xs text-gray-500 mb-3">/month</div>
+                  <div className="text-xs text-gray-500 mb-1">/month</div>
+                  <div className="text-xs text-forest-700 font-medium mb-3">1% platform fee</div>
                   <button
                     type="button"
                     onClick={() => handleSaasCheckout('monthly')}
                     disabled={saasLoading}
                     className="w-full py-2 bg-forest-900 text-white rounded-lg text-sm font-semibold hover:bg-forest-800 disabled:opacity-50 transition-colors"
                   >
-                    {saasLoading ? 'Loading…' : 'Subscribe monthly'}
+                    {saasLoading ? 'Loading\u2026' : 'Upgrade monthly'}
                   </button>
                 </div>
                 <div className="border border-forest-700 rounded-xl p-4 ring-1 ring-forest-700 relative">
@@ -998,14 +722,15 @@ export default function SettingsPage() {
                     <span className="bg-forest-700 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">Save 31%</span>
                   </div>
                   <div className="font-display font-bold text-xl text-forest-900">NOK 2,490</div>
-                  <div className="text-xs text-gray-500 mb-3">/year</div>
+                  <div className="text-xs text-gray-500 mb-1">/year</div>
+                  <div className="text-xs text-forest-700 font-medium mb-3">1% platform fee</div>
                   <button
                     type="button"
                     onClick={() => handleSaasCheckout('yearly')}
                     disabled={saasLoading}
                     className="w-full py-2 bg-forest-900 text-white rounded-lg text-sm font-semibold hover:bg-forest-800 disabled:opacity-50 transition-colors"
                   >
-                    {saasLoading ? 'Loading…' : 'Subscribe yearly'}
+                    {saasLoading ? 'Loading\u2026' : 'Upgrade yearly'}
                   </button>
                 </div>
               </div>
@@ -1013,15 +738,15 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {saasStatus === 'active' && (
+          {settings?.saas_plan === 'pro' && settings?.saas_status === 'active' && (
             <div className="space-y-4">
               <div className="flex items-center gap-3 p-4 bg-forest-50 border border-forest-200 rounded-xl">
                 <svg className="w-5 h-5 text-forest-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p className="text-sm font-semibold text-forest-800">GymAccess subscription active</p>
-                  <p className="text-xs text-gray-500 mt-0.5">Your gym is on an active plan.</p>
+                  <p className="text-sm font-semibold text-forest-800">Pro plan active</p>
+                  <p className="text-xs text-gray-500 mt-0.5">1% platform fee on member payments</p>
                 </div>
               </div>
               <button
@@ -1030,21 +755,21 @@ export default function SettingsPage() {
                 disabled={portalLoading}
                 className="px-5 py-2.5 border border-forest-700 text-forest-800 rounded-xl text-sm font-semibold hover:bg-forest-50 disabled:opacity-50 transition-colors"
               >
-                {portalLoading ? 'Opening…' : 'Manage Subscription'}
+                {portalLoading ? 'Opening\u2026' : 'Manage Subscription'}
               </button>
               {saasError && <p className="text-xs text-red-600">{saasError}</p>}
             </div>
           )}
 
-          {saasStatus === 'past_due' && (
+          {settings?.saas_plan === 'pro' && settings?.saas_status === 'past_due' && (
             <div className="space-y-4">
               <div className="flex items-start gap-3 p-4 bg-orange-50 border border-orange-200 rounded-xl">
                 <svg className="w-5 h-5 text-orange-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <div>
-                  <p className="text-sm font-semibold text-orange-800">Payment issue with your GymAccess subscription</p>
-                  <p className="text-xs text-orange-700 mt-0.5">Please update your payment method to avoid service interruption.</p>
+                  <p className="text-sm font-semibold text-orange-800">Payment issue with your Pro subscription</p>
+                  <p className="text-xs text-orange-700 mt-0.5">Please update your payment method to keep the 1% fee rate.</p>
                 </div>
               </div>
               <button
@@ -1053,38 +778,8 @@ export default function SettingsPage() {
                 disabled={portalLoading}
                 className="px-5 py-2.5 bg-orange-600 text-white rounded-xl text-sm font-semibold hover:bg-orange-700 disabled:opacity-50 transition-colors"
               >
-                {portalLoading ? 'Opening…' : 'Update Payment Method'}
+                {portalLoading ? 'Opening\u2026' : 'Update Payment Method'}
               </button>
-              {saasError && <p className="text-xs text-red-600">{saasError}</p>}
-            </div>
-          )}
-
-          {saasStatus === 'cancelled' && (
-            <div className="space-y-4">
-              <div className="flex items-start gap-3 p-4 bg-gray-50 border border-gray-200 rounded-xl">
-                <svg className="w-5 h-5 text-gray-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
-                <p className="text-sm text-gray-700">Your GymAccess subscription has been cancelled. Re-subscribe to continue using the platform.</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleSaasCheckout('monthly')}
-                  disabled={saasLoading}
-                  className="py-2.5 border border-forest-700 text-forest-800 rounded-xl text-sm font-semibold hover:bg-forest-50 disabled:opacity-50 transition-colors"
-                >
-                  Monthly — NOK 299
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSaasCheckout('yearly')}
-                  disabled={saasLoading}
-                  className="py-2.5 bg-forest-900 text-white rounded-xl text-sm font-semibold hover:bg-forest-800 disabled:opacity-50 transition-colors"
-                >
-                  Yearly — NOK 2,490
-                </button>
-              </div>
               {saasError && <p className="text-xs text-red-600">{saasError}</p>}
             </div>
           )}

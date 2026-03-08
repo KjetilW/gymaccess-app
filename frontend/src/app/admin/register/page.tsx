@@ -249,7 +249,7 @@ export default function RegisterPage() {
                     {[
                       { value: 'shared_pin', label: 'Shared PIN', desc: 'One PIN for all active members. Simplest setup, no device needed.', icon: '🔢' },
                       { value: 'individual_pin', label: 'Individual PIN', desc: 'Unique PIN per member. Better security, prevents code sharing.', icon: '🔐' },
-                      { value: 'smart_lock', label: 'Smart Lock', desc: 'Igloohome or Seam integration. Full automation.', icon: '🔒' },
+                      { value: 'smart_lock', label: 'Smart Lock', desc: 'igloohome lock integration. Full automation.', icon: '🔒' },
                     ].map(({ value, label, desc, icon }) => (
                       <label
                         key={value}

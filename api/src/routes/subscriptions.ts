@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { pool } from '../db';
 import crypto from 'crypto';
 import { encryptCode, decryptCode, isEncrypted } from '../utils/crypto';
-import { isSeamConfigured, isSeamMockMode, createOfflineAccessCode, deleteAccessCode } from '../utils/seam';
 import { isIgloohomeConfigured, createAlgoPin, deleteAlgoPin } from '../utils/igloohome';
 import Stripe from 'stripe';
 
@@ -18,11 +17,10 @@ function generatePin(length: number = 4): string {
 }
 
 // Generate access code and queue welcome notification for a newly activated member
-// subscriptionEndDate: optional end date for the subscription period (used for Seam algoPIN time-bound)
+// subscriptionEndDate: optional end date for the subscription period (used for igloohome algoPIN time-bound)
 export async function activateMemberAccess(memberId: string, subscriptionEndDate?: Date): Promise<string | null> {
   const memberResult = await pool.query(
     `SELECT m.*, g.access_type, g.shared_pin, g.name as gym_name,
-            g.seam_device_id, g.seam_connected_account_id, g.seam_tier,
             g.igloohome_lock_id, g.igloohome_client_id, g.igloohome_client_secret
      FROM members m
      JOIN gyms g ON m.gym_id = g.gym_id
@@ -35,11 +33,8 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
   const codeLength = parseInt(process.env.ACCESS_CODE_LENGTH || '4');
 
   // Priority: (1) igloohome direct if lock_id set and credentials configured
-  //           (2) Seam if seam_tier='active' and seam_device_id set
-  //           (3) internal PIN
+  //           (2) internal PIN
   const useIgloohomeDirect = isIgloohomeConfigured(member.igloohome_client_id, member.igloohome_client_secret) && !!member.igloohome_lock_id;
-  const useSeam = !useIgloohomeDirect && (isSeamConfigured() || isSeamMockMode()) &&
-                  !!member.seam_device_id && member.seam_tier === 'active';
 
   let code: string;
   let providerCodeId: string | null = null;
@@ -73,23 +68,6 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
       console.error('igloohome direct PIN creation failed, falling back to internal PIN:', providerError);
       code = generatePin(codeLength);
     }
-  } else if (useSeam) {
-    // Create igloohome algoPIN via Seam
-    try {
-      const result = await createOfflineAccessCode(member.seam_device_id, member.name, startsAt, endsAt);
-      if (result) {
-        code = result.code;
-        providerCodeId = result.access_code_id;
-        codeSource = 'igloohome';
-      } else {
-        providerError = 'Seam PIN creation returned null';
-        code = generatePin(codeLength);
-      }
-    } catch (err: any) {
-      providerError = String(err?.message || err);
-      console.error('Seam PIN creation failed, falling back to internal PIN:', providerError);
-      code = generatePin(codeLength);
-    }
   } else if (member.access_type === 'shared_pin') {
     code = member.shared_pin || generatePin(codeLength);
     if (!member.shared_pin) {
@@ -120,11 +98,7 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
     [memberId]
   );
   for (const existing of existingCodes.rows) {
-    if (existing.source === 'igloohome' && existing.provider_code_id) {
-      await deleteAccessCode(existing.provider_code_id).catch(err =>
-        console.error('Failed to delete Seam access code on revoke:', err)
-      );
-    } else if (existing.source === 'igloohome_direct' && existing.provider_code_id && member.igloohome_lock_id) {
+    if (existing.source === 'igloohome_direct' && existing.provider_code_id && member.igloohome_lock_id) {
       await deleteAlgoPin(member.igloohome_client_id, member.igloohome_client_secret, member.igloohome_lock_id, existing.provider_code_id).catch(err =>
         console.error('Failed to delete igloohome direct PIN on revoke:', err)
       );
@@ -144,9 +118,8 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
 
   // Build welcome notification body
   let emailBody: string;
-  if ((useIgloohomeDirect || useSeam) && !providerError) {
-    const lockType = useIgloohomeDirect ? 'igloohome keybox' : 'Keybox 3';
-    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour ${lockType} access PIN: ${code}\n\nUse this code on the keybox at the gym entrance. The code is time-bound to your membership period.\n\nBest regards,\n${member.gym_name}`;
+  if (useIgloohomeDirect && !providerError) {
+    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour igloohome keybox access PIN: ${code}\n\nUse this code on the keybox at the gym entrance. The code is time-bound to your membership period.\n\nBest regards,\n${member.gym_name}`;
   } else if (providerError) {
     emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code will be provided separately by your gym administrator.\n\nBest regards,\n${member.gym_name}`;
     console.error(`Provider error for member ${memberId}: ${providerError}`);

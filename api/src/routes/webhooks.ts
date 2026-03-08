@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { pool } from '../db';
 import crypto from 'crypto';
 import { activateMemberAccess } from './subscriptions';
-import { deleteAccessCode } from '../utils/seam';
 import { deleteAlgoPin } from '../utils/igloohome';
 
 export const webhookRoutes = Router();
@@ -43,11 +42,7 @@ async function revokeAccessCodes(memberId: string) {
     [memberId]
   );
   for (const row of activeCodes.rows) {
-    if (row.source === 'igloohome' && row.provider_code_id) {
-      await deleteAccessCode(row.provider_code_id).catch(err =>
-        console.error('Seam deleteAccessCode failed:', err)
-      );
-    } else if (row.source === 'igloohome_direct' && row.provider_code_id && igloohomeLockId && clientId && clientSecret) {
+    if (row.source === 'igloohome_direct' && row.provider_code_id && igloohomeLockId && clientId && clientSecret) {
       await deleteAlgoPin(clientId, clientSecret, igloohomeLockId, row.provider_code_id).catch(err =>
         console.error('igloohome direct deleteAlgoPin failed:', err)
       );
@@ -110,7 +105,7 @@ async function handleMemberEvent(event: any) {
             [memberId]
           );
 
-          // Get period end date from invoice for Seam time-bound PIN
+          // Get period end date from invoice for igloohome time-bound PIN
           const periodEnd = invoice.period_end
             ? new Date(invoice.period_end * 1000)
             : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -234,22 +229,13 @@ async function handleSaasEvent(event: any) {
     case 'checkout.session.completed': {
       const session = event.data.object;
       const gymId = session.metadata?.gymId;
-      const addon = session.metadata?.addon;
       if (gymId) {
-        if (addon === 'seam') {
-          // Seam add-on purchased: activate seam_tier
-          await pool.query(
-            "UPDATE gyms SET seam_tier = 'active' WHERE gym_id = $1",
-            [gymId]
-          );
-        } else {
-          // GymAccess SaaS subscription
-          await pool.query(
-            `UPDATE gyms SET saas_status = 'active', saas_subscription_id = $1, saas_stripe_customer_id = $2
-             WHERE gym_id = $3`,
-            [session.subscription, session.customer, gymId]
-          );
-        }
+        // GymAccess SaaS subscription
+        await pool.query(
+          `UPDATE gyms SET saas_status = 'active', saas_subscription_id = $1, saas_stripe_customer_id = $2
+           WHERE gym_id = $3`,
+          [session.subscription, session.customer, gymId]
+        );
       }
       break;
     }

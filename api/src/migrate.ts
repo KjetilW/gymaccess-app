@@ -126,7 +126,7 @@ const migrations = `
   ALTER TABLE gyms ADD COLUMN IF NOT EXISTS stripe_connect_status VARCHAR(20) NOT NULL DEFAULT 'not_connected';
 
   -- SaaS subscription fields (feature 175)
-  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS saas_status VARCHAR(20) NOT NULL DEFAULT 'trial';
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS saas_status VARCHAR(20) NOT NULL DEFAULT 'starter';
   ALTER TABLE gyms ADD COLUMN IF NOT EXISTS saas_subscription_id VARCHAR(255);
   ALTER TABLE gyms ADD COLUMN IF NOT EXISTS saas_stripe_customer_id VARCHAR(255);
   ALTER TABLE gyms ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMP;
@@ -151,6 +151,23 @@ const migrations = `
   -- Per-gym igloohome OAuth2 credentials (stored in DB, not env vars)
   ALTER TABLE gyms ADD COLUMN IF NOT EXISTS igloohome_client_id TEXT;
   ALTER TABLE gyms ADD COLUMN IF NOT EXISTS igloohome_client_secret TEXT;
+
+  -- Pricing revision: add saas_plan, clean up Seam/trial columns
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS saas_plan VARCHAR(20) NOT NULL DEFAULT 'starter';
+  ALTER TABLE gyms ALTER COLUMN saas_status DROP NOT NULL;
+  ALTER TABLE gyms ALTER COLUMN saas_status DROP DEFAULT;
+
+  -- Migrate existing data
+  UPDATE gyms SET saas_plan = 'pro' WHERE saas_status = 'active';
+  UPDATE gyms SET saas_plan = 'pro' WHERE saas_status = 'past_due';
+  UPDATE gyms SET saas_status = NULL WHERE saas_status = 'trial';
+  UPDATE gyms SET saas_plan = 'starter', saas_status = NULL WHERE saas_status = 'cancelled';
+
+  -- Drop unused columns
+  ALTER TABLE gyms DROP COLUMN IF EXISTS trial_ends_at;
+  ALTER TABLE gyms DROP COLUMN IF EXISTS seam_tier;
+  ALTER TABLE gyms DROP COLUMN IF EXISTS seam_connected_account_id;
+  ALTER TABLE gyms DROP COLUMN IF EXISTS seam_device_id;
 `;
 
 export async function runMigrations() {

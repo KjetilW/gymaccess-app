@@ -169,7 +169,13 @@ subscriptionRoutes.post('/checkout', async (req, res) => {
 
     const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const unitAmount = Math.round(member.membership_price) * 100;
-    const platformFeePercent = parseFloat(process.env.PLATFORM_FEE_PERCENT || '0');
+
+    // Look up gym's plan to determine platform fee
+    const gymPlanResult = await pool.query('SELECT saas_plan FROM gyms WHERE gym_id = $1', [member.gid]);
+    const gymPlan = gymPlanResult.rows[0]?.saas_plan || 'starter';
+    const platformFeePercent = gymPlan === 'pro'
+      ? parseFloat(process.env.PRO_FEE_PERCENT || '1')
+      : parseFloat(process.env.STARTER_FEE_PERCENT || '3');
     const applicationFeeAmount = platformFeePercent > 0
       ? Math.round(unitAmount * platformFeePercent / 100)
       : 0;

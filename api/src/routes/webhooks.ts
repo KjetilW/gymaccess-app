@@ -230,9 +230,10 @@ async function handleSaasEvent(event: any) {
       const session = event.data.object;
       const gymId = session.metadata?.gymId;
       if (gymId) {
-        // GymAccess SaaS subscription
+        // GymAccess SaaS subscription — upgrade to Pro
         await pool.query(
-          `UPDATE gyms SET saas_status = 'active', saas_subscription_id = $1, saas_stripe_customer_id = $2
+          `UPDATE gyms SET saas_plan = 'pro', saas_status = 'active',
+           saas_subscription_id = $1, saas_stripe_customer_id = $2
            WHERE gym_id = $3`,
           [session.subscription, session.customer, gymId]
         );
@@ -264,7 +265,9 @@ async function handleSaasEvent(event: any) {
     case 'customer.subscription.deleted': {
       const subscription = event.data.object;
       await pool.query(
-        "UPDATE gyms SET saas_status = 'cancelled' WHERE saas_subscription_id = $1",
+        `UPDATE gyms SET saas_plan = 'starter', saas_status = NULL,
+         saas_subscription_id = NULL, saas_stripe_customer_id = NULL
+         WHERE saas_subscription_id = $1`,
         [subscription.id]
       );
       break;

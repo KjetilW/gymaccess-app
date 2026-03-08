@@ -9,52 +9,24 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 interface GymInfo {
   name: string;
-  saas_status?: string;
-  trial_ends_at?: string | null;
+  saas_plan?: string;
+  saas_status?: string | null;
 }
 
-function daysUntil(dateStr: string): number {
-  const now = new Date();
-  const target = new Date(dateStr);
-  return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-}
+function SaasBanner({ saasPlan, saasStatus }: { saasPlan: string; saasStatus: string | null | undefined }) {
+  // Pro with active subscription — no banner needed
+  if (saasPlan === 'pro' && saasStatus === 'active') return null;
 
-function SaasBanner({ saasStatus, trialEndsAt }: { saasStatus: string; trialEndsAt: string | null | undefined }) {
-  const trialDaysLeft = trialEndsAt ? daysUntil(trialEndsAt) : null;
-  const trialExpired = saasStatus === 'trial' && trialDaysLeft !== null && trialDaysLeft <= 0;
-
-  if (saasStatus === 'active') return null;
-  if (saasStatus === 'trial' && !trialExpired) return null;
-
-  if (trialExpired) {
-    return (
-      <div className="bg-red-600 text-white px-6 py-2.5 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 text-sm">
-          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <span className="font-semibold">Your free trial has expired.</span>
-          <span className="opacity-90">Subscribe to GymAccess to continue managing your gym.</span>
-        </div>
-        <Link
-          href="/admin/settings"
-          className="shrink-0 px-3 py-1 bg-white text-red-700 rounded-lg text-xs font-bold hover:bg-red-50 transition-colors"
-        >
-          Subscribe now
-        </Link>
-      </div>
-    );
-  }
-
-  if (saasStatus === 'past_due') {
+  // Pro with payment issue
+  if (saasPlan === 'pro' && saasStatus === 'past_due') {
     return (
       <div className="bg-orange-500 text-white px-6 py-2.5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 text-sm">
           <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          <span className="font-semibold">Payment issue with your GymAccess subscription.</span>
-          <span className="opacity-90">Update your payment method to avoid service interruption.</span>
+          <span className="font-semibold">Payment issue with your Pro subscription.</span>
+          <span className="opacity-90">Update your payment method to keep the 1% transaction fee.</span>
         </div>
         <Link
           href="/admin/settings"
@@ -66,21 +38,19 @@ function SaasBanner({ saasStatus, trialEndsAt }: { saasStatus: string; trialEnds
     );
   }
 
-  if (saasStatus === 'cancelled') {
+  // Starter plan — subtle upgrade nudge
+  if (saasPlan === 'starter') {
     return (
-      <div className="bg-gray-700 text-white px-6 py-2.5 flex items-center justify-between gap-4">
+      <div className="bg-forest-800 text-forest-200 px-6 py-2 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 text-sm">
-          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-          </svg>
-          <span className="font-semibold">Your GymAccess subscription has been cancelled.</span>
-          <span className="opacity-90">Re-subscribe to continue using the platform.</span>
+          <span className="opacity-80">You&apos;re on the Starter plan (3% transaction fee).</span>
+          <span className="font-semibold text-white">Upgrade to Pro for just 1%.</span>
         </div>
         <Link
           href="/admin/settings"
-          className="shrink-0 px-3 py-1 bg-white text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-50 transition-colors"
+          className="shrink-0 px-3 py-1 bg-sage text-forest-900 rounded-lg text-xs font-bold hover:bg-sage/80 transition-colors"
         >
-          Re-subscribe
+          Upgrade
         </Link>
       </div>
     );
@@ -113,8 +83,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       .then(data => {
         setGymInfo({
           name: data.name || '',
-          saas_status: data.saas_status,
-          trial_ends_at: data.trial_ends_at,
+          saas_plan: data.saas_plan || 'starter',
+          saas_status: data.saas_status || null,
         });
         setChecking(false);
       })
@@ -185,8 +155,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </button>
       </header>
 
-      {gymInfo.saas_status && (
-        <SaasBanner saasStatus={gymInfo.saas_status} trialEndsAt={gymInfo.trial_ends_at} />
+      {gymInfo.saas_plan && (
+        <SaasBanner saasPlan={gymInfo.saas_plan} saasStatus={gymInfo.saas_status ?? null} />
       )}
 
       <main className="flex-1">

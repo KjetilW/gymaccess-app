@@ -2765,5 +2765,111 @@
       "Step 6: Verify graceful degradation: if gym credentials are missing or the igloohome API call fails, the member status update still completes and the error is logged"
     ],
     "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Landing page hero clearly targets gym owners with problem-first headline and owner-focused CTAs",
+    "steps": [
+      "Step 1: Navigate to http://localhost:3000",
+      "Step 2: Verify hero headline contains 'Stop chasing payments'",
+      "Step 3: Verify subtitle mentions automating signups, payments, and access",
+      "Step 4: Verify badge text references community gyms",
+      "Step 5: Verify primary CTA says 'Start free trial' and links to /admin/register",
+      "Step 6: Verify secondary CTA 'See how it works' is present"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Landing page has a 'Sound familiar?' pain points section with 4 relatable problem cards",
+    "steps": [
+      "Step 1: Navigate to http://localhost:3000",
+      "Step 2: Verify section heading 'Sound familiar?' is present",
+      "Step 3: Verify 'Spreadsheet chaos' card with copy about tracking members in Excel",
+      "Step 4: Verify 'Chasing payments' card with copy about manual payment reminders",
+      "Step 5: Verify 'Sharing door codes' card with copy about texting codes manually",
+      "Step 6: Verify 'No overview' card with copy about lacking a dashboard"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Landing page has before/after feature blocks showing how GymAccess solves each pain point",
+    "steps": [
+      "Step 1: Navigate to http://localhost:3000",
+      "Step 2: Verify section heading 'Automate the boring stuff' is present",
+      "Step 3: Verify 'Member signup' block with before text (manual process) and after text (automated signup link)",
+      "Step 4: Verify 'Recurring payments' block with before text (monthly reminders) and after text (Stripe automation)",
+      "Step 5: Verify 'Access control' block with before text (manual codes) and after text (automated code lifecycle)",
+      "Step 6: Verify before text is visually muted/distinct from after text"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Landing page has a 'How it works' section with 4 steps emphasizing minimal owner effort",
+    "steps": [
+      "Step 1: Navigate to http://localhost:3000",
+      "Step 2: Verify section heading 'Up and running in 15 minutes' is present",
+      "Step 3: Verify step 1 'Create your gym' is present",
+      "Step 4: Verify step 2 'Share your link' is present",
+      "Step 5: Verify step 3 'Members pay & get access' is present",
+      "Step 6: Verify step 4 'You're done' is present with copy about automation"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Landing page has a pricing section with a single transparent plan and free trial mention",
+    "steps": [
+      "Step 1: Navigate to http://localhost:3000",
+      "Step 2: Verify section heading 'Simple, transparent pricing' is present",
+      "Step 3: Verify pricing card shows '299 kr/month'",
+      "Step 4: Verify '30-day free trial' is mentioned",
+      "Step 5: Verify feature checklist includes: unlimited members, automated payments, access code management, smart lock support, email notifications, admin dashboard",
+      "Step 6: Verify CTA 'Start free trial' links to /admin/register"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Landing page has an FAQ section with accordion-style answers to common gym owner objections",
+    "steps": [
+      "Step 1: Navigate to http://localhost:3000",
+      "Step 2: Verify section heading 'Common questions' is present",
+      "Step 3: Verify FAQ item 'Do I need technical skills?' is present and expandable",
+      "Step 4: Verify FAQ item 'What about my existing members?' is present and expandable",
+      "Step 5: Verify FAQ item 'What payment methods do members use?' is present and expandable",
+      "Step 6: Verify FAQ item 'How does access control work?' is present and expandable",
+      "Step 7: Verify FAQ item 'Can I cancel anytime?' is present and expandable",
+      "Step 8: Verify clicking a question toggles the answer visibility"
+    ],
+    "passes": false
+  },
+  {
+    "category": "functional",
+    "description": "Landing page has a strong closing CTA section with gym-relevant messaging",
+    "steps": [
+      "Step 1: Navigate to http://localhost:3000",
+      "Step 2: Verify closing CTA section has dark background",
+      "Step 3: Verify heading contains 'Your gym runs 24/7'",
+      "Step 4: Verify subtitle mentions '15 minutes' and 'never chase a payment again'",
+      "Step 5: Verify CTA button 'Start free trial' links to /admin/register"
+    ],
+    "passes": false
+  },
+  {
+    "category": "ui",
+    "description": "Landing page redesign is fully mobile-responsive across all new sections",
+    "steps": [
+      "Step 1: Navigate to http://localhost:3000 at mobile viewport (375px wide)",
+      "Step 2: Verify hero section stacks vertically and is readable",
+      "Step 3: Verify pain point cards stack into single column on mobile",
+      "Step 4: Verify before/after feature blocks are readable on mobile",
+      "Step 5: Verify pricing card is full-width and readable on mobile",
+      "Step 6: Verify FAQ accordion works on mobile with touch",
+      "Step 7: Verify no horizontal overflow on any section"
+    ],
+    "passes": false
   }
 ]

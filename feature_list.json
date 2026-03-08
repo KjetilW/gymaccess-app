@@ -2777,7 +2777,7 @@
       "Step 5: Verify primary CTA says 'Start free trial' and links to /admin/register",
       "Step 6: Verify secondary CTA 'See how it works' is present"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2790,7 +2790,7 @@
       "Step 5: Verify 'Sharing door codes' card with copy about texting codes manually",
       "Step 6: Verify 'No overview' card with copy about lacking a dashboard"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2803,7 +2803,7 @@
       "Step 5: Verify 'Access control' block with before text (manual codes) and after text (automated code lifecycle)",
       "Step 6: Verify before text is visually muted/distinct from after text"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2816,7 +2816,7 @@
       "Step 5: Verify step 3 'Members pay & get access' is present",
       "Step 6: Verify step 4 'You're done' is present with copy about automation"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2829,7 +2829,7 @@
       "Step 5: Verify feature checklist includes: unlimited members, automated payments, access code management, smart lock support, email notifications, admin dashboard",
       "Step 6: Verify CTA 'Start free trial' links to /admin/register"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2844,7 +2844,7 @@
       "Step 7: Verify FAQ item 'Can I cancel anytime?' is present and expandable",
       "Step 8: Verify clicking a question toggles the answer visibility"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "functional",
@@ -2856,7 +2856,7 @@
       "Step 4: Verify subtitle mentions '15 minutes' and 'never chase a payment again'",
       "Step 5: Verify CTA button 'Start free trial' links to /admin/register"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "category": "ui",
@@ -2870,6 +2870,6 @@
       "Step 6: Verify FAQ accordion works on mobile with touch",
       "Step 7: Verify no horizontal overflow on any section"
     ],
-    "passes": false
+    "passes": true
   }
 ]

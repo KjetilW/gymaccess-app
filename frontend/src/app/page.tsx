@@ -41,7 +41,7 @@ export default function Home() {
             href="/admin/register"
             className="bg-forest-900 text-white px-8 py-4 rounded-xl font-display font-semibold text-lg hover:bg-forest-800 transition-all duration-150 shadow-lg shadow-forest-900/20"
           >
-            Start free trial →
+            Get started free →
           </Link>
           <a
             href="#how-it-works"
@@ -201,40 +201,74 @@ export default function Home() {
           Simple, transparent pricing
         </h2>
         <p className="text-forest-600 text-center mb-12 text-lg">
-          One plan. Everything included.
+          Start free. Upgrade when you&apos;re ready.
         </p>
 
-        <div className="max-w-md mx-auto bg-white border border-warm-200 rounded-3xl p-8 text-center">
-          <div className="mb-2">
-            <span className="font-display font-extrabold text-5xl text-forest-900">299 kr</span>
-            <span className="text-forest-600 text-lg">/month</span>
+        <div className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* Starter */}
+          <div className="bg-white border border-warm-200 rounded-3xl p-8">
+            <div className="text-xs font-bold uppercase tracking-widest text-forest-500 mb-3">Starter</div>
+            <div className="mb-1">
+              <span className="font-display font-extrabold text-5xl text-forest-900">Free</span>
+            </div>
+            <p className="text-forest-500 text-sm mb-6">3% platform fee on member payments</p>
+            <ul className="space-y-2.5 text-left mb-8">
+              {[
+                'Unlimited members',
+                'Automated payments via Stripe',
+                'Access code management',
+                'igloohome lock support',
+                'Email notifications',
+                'Admin dashboard',
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-sage flex-shrink-0">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  <span className="text-forest-700 text-sm">{item}</span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/admin/register"
+              className="block w-full bg-forest-900 text-white py-3 rounded-xl font-display font-semibold text-base hover:bg-forest-800 transition-all duration-150 text-center"
+            >
+              Get started free →
+            </Link>
           </div>
-          <p className="text-forest-500 text-sm mb-8">30-day free trial · No credit card required</p>
 
-          <ul className="space-y-3 text-left mb-8">
-            {[
-              'Unlimited members',
-              'Automated payments via Stripe',
-              'Access code management',
-              'Smart lock support (igloohome)',
-              'Email notifications',
-              'Admin dashboard',
-            ].map((item) => (
-              <li key={item} className="flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-sage flex-shrink-0">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-                <span className="text-forest-700">{item}</span>
-              </li>
-            ))}
-          </ul>
-
-          <Link
-            href="/admin/register"
-            className="block w-full bg-forest-900 text-white py-4 rounded-xl font-display font-semibold text-lg hover:bg-forest-800 transition-all duration-150 shadow-lg shadow-forest-900/20"
-          >
-            Start free trial →
-          </Link>
+          {/* Pro */}
+          <div className="bg-forest-900 border border-forest-700 rounded-3xl p-8 relative overflow-hidden">
+            <div className="absolute top-4 right-4">
+              <span className="bg-sage text-forest-900 text-xs font-bold px-2.5 py-1 rounded-full">Save on fees</span>
+            </div>
+            <div className="text-xs font-bold uppercase tracking-widest text-forest-400 mb-3">Pro</div>
+            <div className="mb-1">
+              <span className="font-display font-extrabold text-5xl text-white">299 kr</span>
+              <span className="text-forest-400 text-lg">/month</span>
+            </div>
+            <p className="text-forest-400 text-sm mb-6">1% platform fee · or 2 490 kr/year</p>
+            <ul className="space-y-2.5 text-left mb-8">
+              {[
+                'Everything in Starter',
+                '1% platform fee (vs. 3%)',
+                'Lower cost as you grow',
+              ].map((item) => (
+                <li key={item} className="flex items-center gap-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-sage flex-shrink-0">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                  </svg>
+                  <span className="text-forest-200 text-sm">{item}</span>
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/admin/register"
+              className="block w-full bg-sage text-forest-900 py-3 rounded-xl font-display font-semibold text-base hover:bg-sage/90 transition-all duration-150 text-center"
+            >
+              Start with Pro →
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -283,7 +317,7 @@ export default function Home() {
             href="/admin/register"
             className="inline-block bg-sage text-forest-900 px-10 py-4 rounded-xl font-display font-bold text-lg hover:bg-sage-light transition-all duration-150 shadow-lg"
           >
-            Start free trial →
+            Get started free →
           </Link>
         </div>
       </section>

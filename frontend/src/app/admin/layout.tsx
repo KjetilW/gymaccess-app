@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { Logo } from '../components/Logo';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -143,8 +144,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-warm-50 flex flex-col">
       <header className="bg-forest-900 text-white px-6 py-0 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3 py-4">
-          <Link href="/" className="font-display font-bold text-lg text-white hover:text-forest-200 transition-colors">
-            GymAccess
+          <Link href="/" className="hover:opacity-90 transition-opacity">
+            <Logo size={28} variant="light" />
           </Link>
           {gymInfo.name && (
             <>
@@ -156,7 +157,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <nav className="flex items-center gap-1">
           {navItems.map(({ href, label }) => {
-            const active = pathname === href || pathname.startsWith(href + '/');
+            const active = pathname === href || pathname?.startsWith(href + '/');
             return (
               <Link
                 key={href}

@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { FaqItem } from './components/FaqItem';
+import { Logo } from './components/Logo';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-warm-50">
       {/* Navigation */}
       <nav className="flex items-center justify-between px-8 py-6 max-w-6xl mx-auto">
-        <span className="font-display font-bold text-2xl text-forest-900">GymAccess</span>
+        <Logo size={32} />
         <div className="flex items-center gap-4">
           <Link href="/admin/login" className="text-forest-700 font-medium hover:text-forest-900 transition-colors text-sm">
             Sign in
@@ -290,8 +291,8 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-warm-200 bg-white">
         <div className="max-w-6xl mx-auto px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-display font-bold text-lg text-forest-900">GymAccess</span>
+          <div className="flex items-center gap-3">
+            <Logo size={24} />
             <span className="text-warm-300">·</span>
             <span className="text-sm text-forest-600">Built for community gyms</span>
           </div>

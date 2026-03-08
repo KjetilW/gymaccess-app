@@ -20,10 +20,10 @@ authRoutes.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'Email already registered' });
     }
 
-    // Create gym first (with 30-day free trial)
+    // Create gym on Starter plan (free, 3% platform fee)
     const gymResult = await pool.query(
-      `INSERT INTO gyms (name, location, membership_price, billing_interval, access_type, saas_status, trial_ends_at)
-       VALUES ($1, $2, $3, $4, $5, 'trial', NOW() + INTERVAL '30 days') RETURNING gym_id`,
+      `INSERT INTO gyms (name, location, membership_price, billing_interval, access_type, saas_plan)
+       VALUES ($1, $2, $3, $4, $5, 'starter') RETURNING gym_id`,
       [gymName, location || '', membershipPrice, billingInterval || 'monthly', accessType || 'shared_pin']
     );
     const gymId = gymResult.rows[0].gym_id;

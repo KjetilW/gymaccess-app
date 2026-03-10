@@ -455,6 +455,10 @@ adminRoutes.post('/saas/checkout', async (req: AuthRequest, res) => {
     const interval = plan === 'yearly' ? 'year' : 'month';
 
     const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const returnPath = req.body.returnUrl;
+    const redirectUrl = returnPath && typeof returnPath === 'string' && returnPath.startsWith('/')
+      ? `${frontendUrl}${returnPath}`
+      : `${frontendUrl}/admin/settings`;
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'subscription',
@@ -469,8 +473,8 @@ adminRoutes.post('/saas/checkout', async (req: AuthRequest, res) => {
       }],
       customer_email: adminResult.rows[0].email,
       metadata: { gymId: req.gymId },
-      success_url: `${frontendUrl}/admin/settings`,
-      cancel_url: `${frontendUrl}/admin/settings`,
+      success_url: redirectUrl,
+      cancel_url: redirectUrl,
     });
 
     res.json({ url: session.url });

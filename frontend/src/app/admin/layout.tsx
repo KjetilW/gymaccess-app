@@ -11,6 +11,7 @@ interface GymInfo {
   name: string;
   saas_plan?: string;
   saas_status?: string | null;
+  stripe_connect_status?: string;
 }
 
 function SaasBanner({ saasPlan, saasStatus }: { saasPlan: string; saasStatus: string | null | undefined }) {
@@ -59,6 +60,49 @@ function SaasBanner({ saasPlan, saasStatus }: { saasPlan: string; saasStatus: st
   return null;
 }
 
+function StripeConnectBanner({ status }: { status: string | undefined }) {
+  if (!status || status === 'active') return null;
+
+  if (status === 'pending') {
+    return (
+      <div className="bg-yellow-500 text-yellow-950 px-6 py-2.5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 text-sm">
+          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span className="font-semibold">Stripe setup incomplete.</span>
+          <span className="opacity-80">Finish your Stripe onboarding to start accepting member payments.</span>
+        </div>
+        <Link
+          href="/admin/settings"
+          className="shrink-0 px-3 py-1 bg-yellow-950 text-yellow-100 rounded-lg text-xs font-bold hover:bg-yellow-900 transition-colors"
+        >
+          Finish setup
+        </Link>
+      </div>
+    );
+  }
+
+  // not_connected (default)
+  return (
+    <div className="bg-red-600 text-white px-6 py-2.5 flex items-center justify-between gap-4">
+      <div className="flex items-center gap-2 text-sm">
+        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <span className="font-semibold">Stripe not connected.</span>
+        <span className="opacity-90">Your members won&apos;t be able to pay until you connect your Stripe account.</span>
+      </div>
+      <Link
+        href="/admin/settings"
+        className="shrink-0 px-3 py-1 bg-white text-red-700 rounded-lg text-xs font-bold hover:bg-red-50 transition-colors"
+      >
+        Connect Stripe
+      </Link>
+    </div>
+  );
+}
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -85,6 +129,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           name: data.name || '',
           saas_plan: data.saas_plan || 'starter',
           saas_status: data.saas_status || null,
+          stripe_connect_status: data.stripe_connect_status || 'not_connected',
         });
         setChecking(false);
       })
@@ -155,6 +200,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </button>
       </header>
 
+      <StripeConnectBanner status={gymInfo.stripe_connect_status} />
       {gymInfo.saas_plan && (
         <SaasBanner saasPlan={gymInfo.saas_plan} saasStatus={gymInfo.saas_status ?? null} />
       )}

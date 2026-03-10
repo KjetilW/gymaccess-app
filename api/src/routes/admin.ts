@@ -43,6 +43,23 @@ adminRoutes.get('/gym', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Gym not found' });
     }
     const gym = result.rows[0];
+
+    // If Stripe Connect is pending, check the actual account status from Stripe
+    if (stripe && gym.stripe_connect_account_id && gym.stripe_connect_status === 'pending') {
+      try {
+        const account = await stripe.accounts.retrieve(gym.stripe_connect_account_id);
+        if (account.charges_enabled && account.payouts_enabled) {
+          await pool.query(
+            "UPDATE gyms SET stripe_connect_status = 'active' WHERE gym_id = $1",
+            [req.gymId]
+          );
+          gym.stripe_connect_status = 'active';
+        }
+      } catch {
+        // If Stripe check fails, keep existing status
+      }
+    }
+
     // Never expose igloohome_client_secret; replace with a configured flag
     const igloohome_configured = !!(gym.igloohome_client_id && gym.igloohome_client_secret);
     const { igloohome_client_secret: _secret, ...gymWithoutSecret } = gym;
@@ -430,6 +447,37 @@ adminRoutes.post('/stripe/connect', async (req: AuthRequest, res) => {
   } catch (err) {
     console.error('Stripe connect error:', err);
     res.status(500).json({ error: 'Failed to create Stripe Connect account' });
+  }
+});
+
+// POST /admin/stripe/connect/refresh — check actual Stripe account status and update DB
+adminRoutes.post('/stripe/connect/refresh', async (req: AuthRequest, res) => {
+  try {
+    if (!stripe) return res.status(503).json({ error: 'Stripe not configured' });
+
+    const gymResult = await pool.query(
+      'SELECT stripe_connect_account_id, stripe_connect_status FROM gyms WHERE gym_id = $1',
+      [req.gymId]
+    );
+    if (gymResult.rows.length === 0) return res.status(404).json({ error: 'Gym not found' });
+
+    const { stripe_connect_account_id: accountId, stripe_connect_status: currentStatus } = gymResult.rows[0];
+    if (!accountId) return res.json({ stripe_connect_status: 'not_connected' });
+    if (currentStatus === 'active') return res.json({ stripe_connect_status: 'active' });
+
+    const account = await stripe.accounts.retrieve(accountId);
+    if (account.charges_enabled && account.payouts_enabled) {
+      await pool.query(
+        "UPDATE gyms SET stripe_connect_status = 'active' WHERE gym_id = $1",
+        [req.gymId]
+      );
+      return res.json({ stripe_connect_status: 'active' });
+    }
+
+    return res.json({ stripe_connect_status: 'pending' });
+  } catch (err) {
+    console.error('Stripe connect refresh error:', err);
+    res.status(500).json({ error: 'Failed to refresh Stripe Connect status' });
   }
 });
 

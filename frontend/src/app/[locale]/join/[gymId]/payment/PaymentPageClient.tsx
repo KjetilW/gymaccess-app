@@ -3,20 +3,23 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-export default function PaymentPage() {
-  const { gymId } = useParams<{ gymId: string }>();
+export default function PaymentPageClient() {
+  const params = useParams<{ gymId: string }>();
+  const gymId = params?.gymId ?? '';
   const searchParams = useSearchParams();
-  const memberId = searchParams.get('memberId');
+  const memberId = searchParams?.get('memberId') ?? null;
+  const t = useTranslations('payment');
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!memberId) {
-      setError('Missing member information. Please sign up again.');
+      setError(t('error.missingMember'));
       setLoading(false);
       return;
     }
@@ -36,7 +39,7 @@ export default function PaymentPage() {
         }
       })
       .catch(() => {
-        setError('Could not connect to payment service. Please try again.');
+        setError(t('error.connectionError'));
         setLoading(false);
       });
   }, [memberId]);
@@ -54,8 +57,8 @@ export default function PaymentPage() {
           {loading ? (
             <>
               <div className="w-10 h-10 border-2 border-forest-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-forest-800 font-medium">Redirecting to secure payment…</p>
-              <p className="text-gray-400 text-sm mt-2">Powered by Stripe</p>
+              <p className="text-forest-800 font-medium">{t('loading.title')}</p>
+              <p className="text-gray-400 text-sm mt-2">{t('loading.poweredBy')}</p>
             </>
           ) : (
             <>
@@ -64,10 +67,10 @@ export default function PaymentPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                 </svg>
               </div>
-              <h1 className="font-display font-bold text-xl text-forest-900 mb-2">Payment setup failed</h1>
+              <h1 className="font-display font-bold text-xl text-forest-900 mb-2">{t('error.title')}</h1>
               <p className="text-gray-500 text-sm mb-6">{error}</p>
               <Link href={`/join/${gymId}`} className="text-sm text-forest-700 hover:underline font-medium">
-                Back to signup
+                {t('error.backToSignup')}
               </Link>
             </>
           )}

@@ -3,6 +3,7 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -14,9 +15,11 @@ interface GymInfo {
   billing_interval: string;
 }
 
-export default function JoinPage() {
-  const { gymId } = useParams<{ gymId: string }>();
+export default function JoinPageClient() {
+  const params = useParams<{ gymId: string }>();
+  const gymId = params?.gymId ?? '';
   const router = useRouter();
+  const t = useTranslations('join');
 
   const [gym, setGym] = useState<GymInfo | null>(null);
   const [gymLoading, setGymLoading] = useState(true);
@@ -49,13 +52,13 @@ export default function JoinPage() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!name.trim()) e.name = 'Your name is required';
+    if (!name.trim()) e.name = t('form.name.error');
     if (!email.trim()) {
-      e.email = 'Email is required';
+      e.email = t('form.email.errorRequired');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      e.email = 'Please enter a valid email address';
+      e.email = t('form.email.errorInvalid');
     }
-    if (!terms) e.terms = 'You must accept the terms to proceed';
+    if (!terms) e.terms = t('form.terms.error');
     return e;
   };
 
@@ -75,9 +78,9 @@ export default function JoinPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Signup failed');
-      router.push(`/join/${gymId}/payment?memberId=${data.member_id}`);
+      router.push(`/join/${gymId}/payment?memberId=${data.member_id}` as any);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setSubmitError(err instanceof Error ? err.message : t('form.submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -95,9 +98,9 @@ export default function JoinPage() {
     return (
       <div className="min-h-screen bg-warm-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-2xl font-display font-bold text-forest-900 mb-2">Gym not found</p>
-          <p className="text-gray-500 text-sm">This signup link may be invalid or expired.</p>
-          <Link href="/" className="mt-6 inline-block text-sm text-forest-700 hover:underline">Back to home</Link>
+          <p className="text-2xl font-display font-bold text-forest-900 mb-2">{t('notFound.title')}</p>
+          <p className="text-gray-500 text-sm">{t('notFound.body')}</p>
+          <Link href="/" className="mt-6 inline-block text-sm text-forest-700 hover:underline">{t('notFound.back')}</Link>
         </div>
       </div>
     );
@@ -114,38 +117,38 @@ export default function JoinPage() {
       <main className="max-w-lg mx-auto px-6 py-12">
         {/* Gym info card */}
         <div className="bg-forest-900 text-white rounded-2xl p-6 mb-8">
-          <p className="text-forest-300 text-xs font-semibold uppercase tracking-widest mb-1">Join</p>
+          <p className="text-forest-300 text-xs font-semibold uppercase tracking-widest mb-1">{t('gymCard.label')}</p>
           <h1 className="font-display font-bold text-2xl mb-1">{gym.name}</h1>
           <p className="text-forest-400 text-sm">{gym.location}</p>
           <div className="mt-4 pt-4 border-t border-forest-800 flex items-baseline gap-2">
             <span className="font-display font-bold text-3xl">NOK {gym.membership_price.toLocaleString()}</span>
-            <span className="text-forest-400 text-sm">/ {gym.billing_interval === 'yearly' ? 'year' : 'month'}</span>
+            <span className="text-forest-400 text-sm">/ {gym.billing_interval === 'yearly' ? t('gymCard.year') : t('gymCard.month')}</span>
           </div>
         </div>
 
         {/* Signup form */}
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-warm-200 p-6 space-y-5">
-          <h2 className="font-display font-bold text-lg text-forest-900">Your details</h2>
+          <h2 className="font-display font-bold text-lg text-forest-900">{t('form.heading')}</h2>
 
           <div>
-            <label className="block text-sm font-semibold text-forest-800 mb-1.5">Full name</label>
+            <label className="block text-sm font-semibold text-forest-800 mb-1.5">{t('form.name.label')}</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="Your name"
+              placeholder={t('form.name.placeholder')}
               className={`w-full px-4 py-3 rounded-xl border text-forest-900 focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent transition-all ${errors.name ? 'border-red-400 bg-red-50' : 'border-warm-200 hover:border-forest-400'}`}
             />
             {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-forest-800 mb-1.5">Email address</label>
+            <label className="block text-sm font-semibold text-forest-800 mb-1.5">{t('form.email.label')}</label>
             <input
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder={t('form.email.placeholder')}
               className={`w-full px-4 py-3 rounded-xl border text-forest-900 focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent transition-all ${errors.email ? 'border-red-400 bg-red-50' : 'border-warm-200 hover:border-forest-400'}`}
             />
             {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
@@ -153,13 +156,13 @@ export default function JoinPage() {
 
           <div>
             <label className="block text-sm font-semibold text-forest-800 mb-1.5">
-              Phone number <span className="font-normal text-gray-400">(optional)</span>
+              {t('form.phone.label')} <span className="font-normal text-gray-400">{t('form.phone.optional')}</span>
             </label>
             <input
               type="tel"
               value={phone}
               onChange={e => setPhone(e.target.value)}
-              placeholder="+47 123 45 678"
+              placeholder={t('form.phone.placeholder')}
               className="w-full px-4 py-3 rounded-xl border border-warm-200 text-forest-900 focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent transition-all hover:border-forest-400"
             />
           </div>
@@ -173,9 +176,9 @@ export default function JoinPage() {
                 className="mt-0.5 accent-forest-700 w-4 h-4 flex-shrink-0"
               />
               <span className="text-sm text-forest-800">
-                I agree to the{' '}
-                <span className="text-forest-700 font-semibold">terms and conditions</span>{' '}
-                and understand that my membership will renew automatically until cancelled.
+                {t('form.terms.text')}{' '}
+                <span className="text-forest-700 font-semibold">{t('form.terms.link')}</span>{' '}
+                {t('form.terms.suffix')}
               </span>
             </label>
             {errors.terms && <p className="text-red-500 text-xs mt-1">{errors.terms}</p>}
@@ -190,7 +193,7 @@ export default function JoinPage() {
             disabled={submitting}
             className="w-full py-3.5 bg-forest-900 text-white rounded-xl font-display font-bold text-base hover:bg-forest-800 disabled:opacity-50 transition-colors"
           >
-            {submitting ? 'Creating account…' : `Proceed to payment — NOK ${gym.membership_price.toLocaleString()}`}
+            {submitting ? t('form.submitting') : t('form.submit', { price: gym.membership_price.toLocaleString() })}
           </button>
         </form>
       </main>
@@ -198,7 +201,7 @@ export default function JoinPage() {
       <footer className="border-t border-warm-200 bg-white mt-8">
         <div className="max-w-lg mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
           <span className="font-display font-semibold text-forest-800">GymAccess</span>
-          <span>Secure payments by Stripe · Member data is encrypted</span>
+          <span>{t('footer.security')}</span>
           <span>© {new Date().getFullYear()} GymAccess</span>
         </div>
       </footer>

@@ -3,13 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
-export default function SuccessPage() {
+export default function SuccessPageClient() {
   const searchParams = useSearchParams();
-  const sessionId = searchParams.get('session_id');
+  const sessionId = searchParams?.get('session_id') ?? null;
   const [activating, setActivating] = useState(!!sessionId);
+  const t = useTranslations('success');
 
   useEffect(() => {
     if (!sessionId) return;
@@ -36,7 +38,7 @@ export default function SuccessPage() {
           {activating ? (
             <>
               <div className="w-10 h-10 border-2 border-forest-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-forest-800 font-medium">Activating your membership…</p>
+              <p className="text-forest-800 font-medium">{t('activating')}</p>
             </>
           ) : (
             <>
@@ -47,18 +49,18 @@ export default function SuccessPage() {
               </div>
 
               <h1 className="font-display font-bold text-2xl text-forest-900 mb-2">
-                Payment successful!
+                {t('title')}
               </h1>
               <p className="text-gray-500 text-sm mb-6">
-                Welcome! Your membership is now active. Check your email for your access code.
+                {t('body')}
               </p>
 
               <div className="bg-warm-50 rounded-xl p-4 text-left text-sm text-gray-600">
-                <p className="font-semibold text-forest-800 mb-1">What happens next?</p>
+                <p className="font-semibold text-forest-800 mb-1">{t('nextSteps.heading')}</p>
                 <ul className="space-y-1 list-disc list-inside text-gray-500">
-                  <li>You will receive a welcome email with your access code</li>
-                  <li>Your membership renews automatically each billing period</li>
-                  <li>Check your email for a link to manage your subscription</li>
+                  <li>{t('nextSteps.step1')}</li>
+                  <li>{t('nextSteps.step2')}</li>
+                  <li>{t('nextSteps.step3')}</li>
                 </ul>
               </div>
             </>

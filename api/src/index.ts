@@ -24,6 +24,7 @@ app.use(express.json());
 app.use('/auth', rateLimit(30, 60 * 1000));
 app.use('/members', rateLimit(60, 60 * 1000));
 app.use('/gyms', rateLimit(60, 60 * 1000));
+app.use('/subscriptions/manage', rateLimit(20, 60 * 1000));
 
 // Health check
 app.get('/health', async (_req, res) => {

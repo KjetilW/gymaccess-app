@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import crypto from 'crypto';
 import { pool } from '../db';
 
 export const memberRoutes = Router();
@@ -33,10 +34,11 @@ memberRoutes.post('/', async (req, res) => {
       return res.status(409).json({ error: 'A member with this email already exists for this gym' });
     }
 
+    const manageToken = crypto.randomBytes(32).toString('hex');
     const result = await pool.query(
-      `INSERT INTO members (gym_id, name, email, phone, status)
-       VALUES ($1, $2, $3, $4, 'pending') RETURNING *`,
-      [gymId, name, email, phone || null]
+      `INSERT INTO members (gym_id, name, email, phone, status, manage_token)
+       VALUES ($1, $2, $3, $4, 'pending', $5) RETURNING *`,
+      [gymId, name, email, phone || null, manageToken]
     );
 
     res.status(201).json(result.rows[0]);

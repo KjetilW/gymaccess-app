@@ -27,6 +27,7 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
      WHERE m.member_id = $1`,
     [memberId]
   );
+  const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   if (memberResult.rows.length === 0) return null;
 
   const member = memberResult.rows[0];
@@ -117,14 +118,15 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
   );
 
   // Build welcome notification body
+  const manageLink = member.manage_token ? `\n\nManage your subscription: ${frontendUrl}/manage/${member.manage_token}` : '';
   let emailBody: string;
   if (useIgloohomeDirect && !providerError) {
-    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour igloohome keybox access PIN: ${code}\n\nUse this code on the keybox at the gym entrance. The code is time-bound to your membership period.\n\nBest regards,\n${member.gym_name}`;
+    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour igloohome keybox access PIN: ${code}\n\nUse this code on the keybox at the gym entrance. The code is time-bound to your membership period.\n\nBest regards,\n${member.gym_name}${manageLink}`;
   } else if (providerError) {
-    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code will be provided separately by your gym administrator.\n\nBest regards,\n${member.gym_name}`;
+    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code will be provided separately by your gym administrator.\n\nBest regards,\n${member.gym_name}${manageLink}`;
     console.error(`Provider error for member ${memberId}: ${providerError}`);
   } else {
-    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code: ${code}\n\nBest regards,\n${member.gym_name}`;
+    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code: ${code}\n\nBest regards,\n${member.gym_name}${manageLink}`;
   }
 
   await pool.query(
@@ -273,6 +275,73 @@ subscriptionRoutes.post('/verify-session', async (req, res) => {
   } catch (err) {
     console.error('Verify session error:', err);
     res.status(500).json({ error: 'Failed to verify session' });
+  }
+});
+
+// Get member subscription info by manage token (no auth — token is the credential)
+subscriptionRoutes.get('/manage/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const result = await pool.query(
+      `SELECT m.name, m.email, m.status, m.manage_token,
+              g.name as gym_name, g.membership_price, g.billing_interval,
+              s.provider_subscription_id
+       FROM members m
+       JOIN gyms g ON m.gym_id = g.gym_id
+       LEFT JOIN subscriptions s ON s.subscription_id = (
+         SELECT s2.subscription_id FROM subscriptions s2
+         WHERE s2.member_id = m.member_id ORDER BY s2.created_at DESC LIMIT 1
+       )
+       WHERE m.manage_token = $1`,
+      [token]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Invalid or unknown token' });
+    }
+    const row = result.rows[0];
+    res.json({
+      name: row.name,
+      email: row.email,
+      status: row.status,
+      gym_name: row.gym_name,
+      membership_price: row.membership_price,
+      billing_interval: row.billing_interval,
+    });
+  } catch (err) {
+    console.error('Manage GET error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create Stripe Customer Portal session for member (no auth — token is the credential)
+subscriptionRoutes.post('/manage/:token/portal', async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(503).json({ error: 'Stripe not configured' });
+    }
+    const { token } = req.params;
+    const result = await pool.query(
+      `SELECT m.member_id, m.stripe_customer_id
+       FROM members m
+       WHERE m.manage_token = $1`,
+      [token]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Invalid or unknown token' });
+    }
+    const member = result.rows[0];
+    if (!member.stripe_customer_id) {
+      return res.status(400).json({ error: 'No Stripe customer associated with this membership' });
+    }
+    const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: member.stripe_customer_id,
+      return_url: `${frontendUrl}/manage/${token}`,
+    });
+    res.json({ url: portal.url });
+  } catch (err) {
+    console.error('Manage portal error:', err);
+    res.status(500).json({ error: 'Failed to create portal session' });
   }
 });
 

@@ -168,6 +168,11 @@ const migrations = `
   ALTER TABLE gyms DROP COLUMN IF EXISTS seam_tier;
   ALTER TABLE gyms DROP COLUMN IF EXISTS seam_connected_account_id;
   ALTER TABLE gyms DROP COLUMN IF EXISTS seam_device_id;
+
+  -- Member self-service: unique manage token for subscription management link
+  ALTER TABLE members ADD COLUMN IF NOT EXISTS manage_token VARCHAR(255);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_members_manage_token ON members(manage_token) WHERE manage_token IS NOT NULL;
+  UPDATE members SET manage_token = REPLACE(gen_random_uuid()::TEXT, '-', '') || REPLACE(gen_random_uuid()::TEXT, '-', '') WHERE manage_token IS NULL;
 `;
 
 export async function runMigrations() {

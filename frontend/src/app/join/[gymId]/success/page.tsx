@@ -58,7 +58,7 @@ export default function SuccessPage() {
                 <ul className="space-y-1 list-disc list-inside text-gray-500">
                   <li>You will receive a welcome email with your access code</li>
                   <li>Your membership renews automatically each billing period</li>
-                  <li>Contact your gym admin if you have any questions</li>
+                  <li>Check your email for a link to manage your subscription</li>
                 </ul>
               </div>
             </>

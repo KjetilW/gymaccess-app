@@ -28,7 +28,7 @@ function verifyStripeSignature(payload: Buffer | string, sigHeader: string, secr
 }
 
 // Revoke all active access codes for a member (DB + provider if applicable)
-async function revokeAccessCodes(memberId: string) {
+export async function revokeAccessCodes(memberId: string) {
   // Get the gym's per-gym igloohome credentials and lock_id for direct PIN deletion
   const gymData = await pool.query(
     `SELECT g.igloohome_lock_id, g.igloohome_client_id, g.igloohome_client_secret
@@ -96,7 +96,7 @@ async function handleMemberEvent(event: any) {
         if (sub.rows.length > 0) {
           const memberId = sub.rows[0].member_id;
           const memberData = await pool.query(
-            `SELECT m.name, m.email, g.name as gym_name, g.membership_price
+            `SELECT m.name, m.email, m.manage_token, g.name as gym_name, g.membership_price
              FROM members m JOIN gyms g ON m.gym_id = g.gym_id WHERE m.member_id = $1`,
             [memberId]
           );
@@ -133,13 +133,15 @@ async function handleMemberEvent(event: any) {
 
           if (memberData.rows.length > 0) {
             const m = memberData.rows[0];
+            const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+            const manageLink = m.manage_token ? `\n\nManage your subscription: ${frontendUrl}/manage/${m.manage_token}` : '';
             await pool.query(
               `INSERT INTO notifications (member_id, type, channel, recipient, subject, body, status)
                VALUES ($1, 'payment_receipt', 'email', $2, $3, $4, 'pending')`,
               [
                 memberId, m.email,
                 `Payment received – ${m.gym_name}`,
-                `Hi ${m.name},\n\nThank you for your payment of NOK ${m.membership_price}. Your membership at ${m.gym_name} is active.\n\nBest regards,\n${m.gym_name}`
+                `Hi ${m.name},\n\nThank you for your payment of NOK ${m.membership_price}. Your membership at ${m.gym_name} is active.\n\nBest regards,\n${m.gym_name}${manageLink}`
               ]
             );
           }
@@ -158,7 +160,7 @@ async function handleMemberEvent(event: any) {
         if (sub.rows.length > 0) {
           const memberId = sub.rows[0].member_id;
           const memberData = await pool.query(
-            `SELECT m.name, m.email, g.name as gym_name
+            `SELECT m.name, m.email, m.manage_token, g.name as gym_name
              FROM members m JOIN gyms g ON m.gym_id = g.gym_id WHERE m.member_id = $1`,
             [memberId]
           );
@@ -169,13 +171,15 @@ async function handleMemberEvent(event: any) {
           await revokeAccessCodes(memberId);
           if (memberData.rows.length > 0) {
             const m = memberData.rows[0];
+            const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+            const manageLink = m.manage_token ? `\n\nManage your subscription: ${frontendUrl}/manage/${m.manage_token}` : '';
             await pool.query(
               `INSERT INTO notifications (member_id, type, channel, recipient, subject, body, status)
                VALUES ($1, 'payment_failed', 'email', $2, $3, $4, 'pending')`,
               [
                 memberId, m.email,
                 `Payment issue – ${m.gym_name}`,
-                `Hi ${m.name},\n\nWe had trouble processing your payment for ${m.gym_name}. Please update your payment method to keep your access.\n\nBest regards,\n${m.gym_name}`
+                `Hi ${m.name},\n\nWe had trouble processing your payment for ${m.gym_name}. Please update your payment method to keep your access.\n\nBest regards,\n${m.gym_name}${manageLink}`
               ]
             );
           }
@@ -201,19 +205,21 @@ async function handleMemberEvent(event: any) {
         );
         await revokeAccessCodes(memberId);
         const memberData = await pool.query(
-          `SELECT m.name, m.email, g.name as gym_name
+          `SELECT m.name, m.email, m.manage_token, g.name as gym_name
            FROM members m JOIN gyms g ON m.gym_id = g.gym_id WHERE m.member_id = $1`,
           [memberId]
         );
         if (memberData.rows.length > 0) {
           const m = memberData.rows[0];
+          const frontendUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+          const manageLink = m.manage_token ? `\n\nView your membership status: ${frontendUrl}/manage/${m.manage_token}` : '';
           await pool.query(
             `INSERT INTO notifications (member_id, type, channel, recipient, subject, body, status)
              VALUES ($1, 'cancellation', 'email', $2, $3, $4, 'pending')`,
             [
               memberId, m.email,
               `Membership cancelled – ${m.gym_name}`,
-              `Hi ${m.name},\n\nYour membership at ${m.gym_name} has been cancelled. Your access code has been deactivated and your access will expire immediately.\n\nBest regards,\n${m.gym_name}`
+              `Hi ${m.name},\n\nYour membership at ${m.gym_name} has been cancelled. Your access code has been deactivated and your access will expire immediately.\n\nBest regards,\n${m.gym_name}${manageLink}`
             ]
           );
         }

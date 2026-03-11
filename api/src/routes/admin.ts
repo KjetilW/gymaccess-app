@@ -3,6 +3,7 @@ import { pool } from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { encryptCode, decryptCode, isEncrypted } from '../utils/crypto';
 import { isIgloohomeConfigured, createAlgoPin, deleteAlgoPin } from '../utils/igloohome';
+import { revokeAccessCodes } from './webhooks';
 import Stripe from 'stripe';
 
 const stripe = process.env.STRIPE_API_KEY
@@ -212,23 +213,33 @@ adminRoutes.post('/members/:memberId/cancel', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Member not found' });
     }
 
-    // Revoke access and cancel subscription
-    await pool.query(
-      "UPDATE access_codes SET valid_to = NOW() WHERE member_id = $1 AND valid_to IS NULL",
-      [req.params.memberId]
-    );
-    await pool.query(
-      "UPDATE subscriptions SET status = 'cancelled', end_date = NOW() WHERE member_id = $1 AND status = 'active'",
-      [req.params.memberId]
-    );
+    // Revoke access codes (igloohome-aware)
+    await revokeAccessCodes(req.params.memberId);
 
-    // Queue cancellation notification
-    const member = result.rows[0];
-    await pool.query(
-      `INSERT INTO notifications (member_id, type, channel, recipient, subject, body, status)
-       VALUES ($1, 'cancellation', 'email', $2, 'Your membership has been cancelled', $3, 'pending')`,
-      [member.member_id, member.email, `Hi ${member.name}, your membership has been cancelled. Your access code has been revoked.`]
+    // Cancel Stripe subscription so member stops getting charged
+    const subResult = await pool.query(
+      "SELECT provider_subscription_id FROM subscriptions WHERE member_id = $1 AND status = 'active' LIMIT 1",
+      [req.params.memberId]
     );
+    if (subResult.rows.length > 0 && subResult.rows[0].provider_subscription_id && stripe) {
+      try {
+        await stripe.subscriptions.cancel(subResult.rows[0].provider_subscription_id);
+        // The customer.subscription.deleted webhook will update DB status and send the cancellation email
+      } catch (stripeErr) {
+        console.error('Failed to cancel Stripe subscription:', stripeErr);
+        // Fall through: mark subscription cancelled locally even if Stripe call fails
+        await pool.query(
+          "UPDATE subscriptions SET status = 'cancelled', end_date = NOW() WHERE member_id = $1 AND status = 'active'",
+          [req.params.memberId]
+        );
+      }
+    } else {
+      // No Stripe subscription — update DB directly
+      await pool.query(
+        "UPDATE subscriptions SET status = 'cancelled', end_date = NOW() WHERE member_id = $1 AND status = 'active'",
+        [req.params.memberId]
+      );
+    }
 
     res.json(result.rows[0]);
   } catch (err) {

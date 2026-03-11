@@ -4,6 +4,7 @@ import { useEffect, useState, FormEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { LanguageSwitcher } from '../../../components/LanguageSwitcher';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -108,10 +109,11 @@ export default function JoinPageClient() {
 
   return (
     <div className="min-h-screen bg-warm-50">
-      <header className="bg-forest-900 text-white px-6 py-4">
+      <header className="bg-forest-900 text-white px-6 py-4 flex items-center justify-between">
         <Link href="/" className="font-display font-bold text-lg text-white hover:text-forest-200 transition-colors">
           GymAccess
         </Link>
+        <LanguageSwitcher />
       </header>
 
       <main className="max-w-lg mx-auto px-6 py-12">

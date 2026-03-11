@@ -2,6 +2,8 @@ import { getTranslations } from 'next-intl/server';
 import NextLink from 'next/link';
 import { FaqItem } from '../components/FaqItem';
 import { Logo } from '../components/Logo';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { LocaleBanner } from '../components/LocaleBanner';
 
 const BASE_URL = 'https://gymaccess.app';
 
@@ -34,6 +36,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
 
   return (
     <div className="min-h-screen bg-warm-50">
+      <LocaleBanner />
       {/* Navigation */}
       <nav className="flex items-center justify-between px-8 py-6 max-w-6xl mx-auto">
         <Logo size={32} />
@@ -47,6 +50,7 @@ export default async function Home({ params }: { params: { locale: string } }) {
           >
             {nav('register')}
           </NextLink>
+          <LanguageSwitcher />
         </div>
       </nav>
 

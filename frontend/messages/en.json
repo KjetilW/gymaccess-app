@@ -1,0 +1,431 @@
+{
+  "meta": {
+    "landing": {
+      "title": "GymAccess — Gym Membership Management",
+      "description": "Automated membership management for small community gyms. Signup, payments, and access control in one place.",
+      "ogTitle": "GymAccess — Gym Membership Management",
+      "ogDescription": "Automated membership management for small community gyms."
+    },
+    "join": {
+      "title": "Join {gymName} — GymAccess",
+      "description": "Sign up for a membership at {gymName}."
+    },
+    "manage": {
+      "title": "Manage Membership — GymAccess",
+      "description": "Manage your gym membership."
+    }
+  },
+  "nav": {
+    "signIn": "Sign in",
+    "register": "Register your gym",
+    "support": "Support"
+  },
+  "landing": {
+    "badge": "Built for community gyms with 20–200 members",
+    "hero": {
+      "headline1": "Stop chasing payments.",
+      "headline2": "Start running your gym.",
+      "body": "GymAccess automates signups, recurring payments, and door access — so you can spend less time on admin and more time on your gym.",
+      "ctaPrimary": "Get started free →",
+      "ctaSecondary": "See how it works"
+    },
+    "pain": {
+      "heading": "Sound familiar?",
+      "spreadsheet": {
+        "title": "Spreadsheet chaos",
+        "body": "Tracking members in Excel. Who's paid? Who hasn't? Nobody knows."
+      },
+      "chasing": {
+        "title": "Chasing payments",
+        "body": "Sending reminders on Vipps, bank transfer, or WhatsApp. Every. Single. Month."
+      },
+      "codes": {
+        "title": "Sharing door codes",
+        "body": "Texting codes manually. Ex-members still have access."
+      },
+      "nooverview": {
+        "title": "No overview",
+        "body": "No dashboard. No history. Just your inbox and a prayer."
+      }
+    },
+    "features": {
+      "heading": "Automate the boring stuff",
+      "subheading": "Everything that used to take hours — now runs itself.",
+      "before": "Before",
+      "after": "After",
+      "signup": {
+        "title": "Member signup",
+        "before": "New members message you. You add them to the spreadsheet. Maybe.",
+        "after": "Share your gym's signup link. Members register and pay themselves."
+      },
+      "payments": {
+        "title": "Recurring payments",
+        "before": "Monthly reminders. Awkward follow-ups. Lost revenue.",
+        "after": "Stripe handles billing automatically. Failed payments retry. You get notified."
+      },
+      "access": {
+        "title": "Access control",
+        "before": "Texting door codes. Changing the code when someone leaves. Forgetting to.",
+        "after": "Codes issued on payment, revoked on cancellation. Supports shared PINs, individual codes, or smart locks."
+      }
+    },
+    "howItWorks": {
+      "heading": "Up and running in 15 minutes",
+      "subheading": "No technical skills needed. No hardware required.",
+      "step1": { "title": "Create your gym", "body": "Set your name, price, and billing cycle. That's it." },
+      "step2": { "title": "Share your link", "body": "Every gym gets a signup page. Send it to members." },
+      "step3": { "title": "Members pay & get access", "body": "They sign up via Stripe and receive their door code instantly." },
+      "step4": { "title": "You're done", "body": "Renewals, reminders, and access revocation happen automatically." }
+    },
+    "pricing": {
+      "heading": "Simple, transparent pricing",
+      "subheading": "Start free. Upgrade when you're ready.",
+      "saveOnFees": "Save on fees",
+      "starter": {
+        "name": "Starter",
+        "price": "Free",
+        "fee": "3% platform fee on member payments",
+        "cta": "Get started free →",
+        "features": [
+          "Unlimited members",
+          "Automated payments via Stripe",
+          "Access code management",
+          "igloohome lock support",
+          "Email notifications",
+          "Admin dashboard"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "299 kr",
+        "interval": "/month",
+        "fee": "1% platform fee · or 2 490 kr/year",
+        "cta": "Start with Pro →",
+        "features": [
+          "Everything in Starter",
+          "1% platform fee (vs. 3%)",
+          "Lower cost as you grow"
+        ]
+      }
+    },
+    "faq": {
+      "heading": "Common questions",
+      "q1": "Do I need technical skills?",
+      "a1": "No. If you can fill in a form, you can set up GymAccess. It takes about 15 minutes.",
+      "q2": "What about my existing members?",
+      "a2": "You can add existing members manually from the admin dashboard and send them a signup link to start paying automatically.",
+      "q3": "What payment methods do members use?",
+      "a3": "Card payments via Stripe. Members enter their card once and get billed automatically.",
+      "q4": "How does access control work?",
+      "a4": "You choose: shared PIN for the whole gym, individual codes per member, or smart lock integration with igloohome. Codes are sent automatically on payment and revoked on cancellation.",
+      "q5": "Can I cancel anytime?",
+      "a5": "Yes. No lock-in, no contracts. Cancel from your dashboard."
+    },
+    "cta": {
+      "heading1": "Your gym runs 24/7.",
+      "heading2": "Your admin shouldn't.",
+      "body": "Set up GymAccess in 15 minutes and never chase a payment again.",
+      "button": "Get started free →"
+    },
+    "footer": {
+      "tagline": "Built for community gyms",
+      "register": "Register",
+      "signIn": "Sign in",
+      "support": "Support",
+      "copyright": "© {year} GymAccess. All rights reserved."
+    }
+  },
+  "join": {
+    "loading": "",
+    "notFound": {
+      "title": "Gym not found",
+      "body": "This signup link may be invalid or expired.",
+      "back": "Back to home"
+    },
+    "gymCard": {
+      "label": "Join",
+      "year": "year",
+      "month": "month"
+    },
+    "form": {
+      "heading": "Your details",
+      "name": { "label": "Full name", "placeholder": "Your name", "error": "Your name is required" },
+      "email": { "label": "Email address", "placeholder": "you@example.com", "errorRequired": "Email is required", "errorInvalid": "Please enter a valid email address" },
+      "phone": { "label": "Phone number", "optional": "(optional)", "placeholder": "+47 123 45 678" },
+      "terms": { "text": "I agree to the", "link": "terms and conditions", "suffix": "and understand that my membership will renew automatically until cancelled.", "error": "You must accept the terms to proceed" },
+      "submit": "Proceed to payment — NOK {price}",
+      "submitting": "Creating account…",
+      "submitError": "Something went wrong. Please try again."
+    },
+    "footer": {
+      "security": "Secure payments by Stripe · Member data is encrypted"
+    }
+  },
+  "payment": {
+    "loading": {
+      "title": "Redirecting to secure payment…",
+      "poweredBy": "Powered by Stripe"
+    },
+    "error": {
+      "title": "Payment setup failed",
+      "backToSignup": "Back to signup",
+      "missingMember": "Missing member information. Please sign up again.",
+      "connectionError": "Could not connect to payment service. Please try again."
+    }
+  },
+  "success": {
+    "activating": "Activating your membership…",
+    "title": "Payment successful!",
+    "body": "Welcome! Your membership is now active. Check your email for your access code.",
+    "nextSteps": {
+      "heading": "What happens next?",
+      "step1": "You will receive a welcome email with your access code",
+      "step2": "Your membership renews automatically each billing period",
+      "step3": "Check your email for a link to manage your subscription"
+    }
+  },
+  "manage": {
+    "loading": "Loading your membership…",
+    "error": {
+      "title": "Invalid link",
+      "body": "This manage link is invalid or has expired. Please contact your gym administrator."
+    },
+    "membershipAt": "Membership at",
+    "labels": {
+      "member": "Member",
+      "email": "Email",
+      "plan": "Plan",
+      "status": "Status"
+    },
+    "interval": { "year": "year", "month": "month" },
+    "actions": {
+      "manage": "Manage Subscription",
+      "managing": "Opening…",
+      "updatePayment": "Update Payment Method"
+    },
+    "states": {
+      "pastDue": "Your last payment failed. Please update your payment method to restore access.",
+      "cancelled": "Your membership has been cancelled. Contact your gym to rejoin.",
+      "pending": "Your membership is pending payment. Check your email for the payment link.",
+      "suspended": "Your membership has been suspended. Please contact your gym administrator."
+    }
+  },
+  "common": {
+    "status": {
+      "active": "Active",
+      "pending": "Pending",
+      "past_due": "Past due",
+      "cancelled": "Cancelled",
+      "suspended": "Suspended",
+      "expired": "Expired"
+    },
+    "actions": {
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "back": "Back"
+    },
+    "appName": "GymAccess"
+  },
+  "banner": {
+    "text": "This page is available in Norwegian.",
+    "cta": "Switch to Norwegian →",
+    "dismiss": "Dismiss"
+  },
+  "languageSwitcher": {
+    "en": "EN",
+    "nb": "NB"
+  },
+  "admin": {
+    "nav": {
+      "members": "Members",
+      "access": "Access",
+      "payments": "Payments",
+      "settings": "Settings",
+      "signOut": "Sign out"
+    },
+    "banners": {
+      "stripeNotConnected": {
+        "title": "Stripe not connected.",
+        "body": "Your members won't be able to pay until you connect your Stripe account.",
+        "cta": "Connect Stripe"
+      },
+      "stripePending": {
+        "title": "Stripe setup incomplete.",
+        "body": "Finish your Stripe onboarding to start accepting member payments.",
+        "cta": "Finish setup"
+      },
+      "saasPastDue": {
+        "title": "Payment issue with your Pro subscription.",
+        "body": "Update your payment method to keep the 1% transaction fee.",
+        "cta": "Fix now"
+      },
+      "saasStarter": {
+        "body": "You're on the Starter plan (3% transaction fee).",
+        "upgrade": "Upgrade to Pro for just 1%.",
+        "cta": "Upgrade"
+      }
+    },
+    "login": {
+      "title": "Sign in to GymAccess",
+      "subtitle": "Manage your gym membership system",
+      "email": "Email address",
+      "password": "Password",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "noAccount": "Don't have an account?",
+      "register": "Register your gym",
+      "error": "Invalid email or password"
+    },
+    "register": {
+      "title": "Register your gym",
+      "steps": {
+        "account": "Account",
+        "plan": "Plan",
+        "pricing": "Pricing",
+        "access": "Access"
+      },
+      "submit": "Create gym",
+      "submitting": "Creating…",
+      "alreadyHave": "Already have an account?",
+      "signIn": "Sign in"
+    },
+    "members": {
+      "title": "Members",
+      "search": "Search members…",
+      "filterAll": "All statuses",
+      "copyLink": "Copy signup link",
+      "linkCopied": "Link copied!",
+      "addMember": "Add member",
+      "table": {
+        "name": "Name",
+        "email": "Email",
+        "status": "Status",
+        "accessCode": "Access code",
+        "joined": "Joined",
+        "actions": "Actions"
+      },
+      "actions": {
+        "suspend": "Suspend",
+        "cancel": "Cancel",
+        "resend": "Resend email",
+        "viewDetails": "View details"
+      },
+      "noMembers": "No members found.",
+      "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "of": "of",
+        "page": "Page"
+      },
+      "confirmSuspend": {
+        "title": "Suspend {name}?",
+        "body": "This will revoke their access code. They can be reactivated later.",
+        "confirm": "Suspend",
+        "cancel": "Cancel"
+      },
+      "confirmCancel": {
+        "title": "Cancel membership for {name}?",
+        "body": "This will cancel their Stripe subscription and revoke access. This cannot be undone.",
+        "confirm": "Cancel membership",
+        "cancel": "Keep membership"
+      }
+    },
+    "payments": {
+      "title": "Payments",
+      "table": {
+        "member": "Member",
+        "amount": "Amount",
+        "status": "Status",
+        "date": "Date",
+        "description": "Description"
+      },
+      "noPayments": "No payments found.",
+      "status": {
+        "paid": "Paid",
+        "failed": "Failed",
+        "pending": "Pending",
+        "refunded": "Refunded"
+      }
+    },
+    "access": {
+      "title": "Access",
+      "table": {
+        "member": "Member",
+        "code": "Access code",
+        "type": "Type",
+        "validFrom": "Valid from",
+        "validTo": "Valid to"
+      },
+      "noAccess": "No access codes found.",
+      "types": {
+        "shared_pin": "Shared PIN",
+        "individual": "Individual",
+        "igloohome_direct": "igloohome"
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "gym": {
+        "heading": "Gym settings",
+        "name": "Gym name",
+        "location": "Location",
+        "price": "Membership price (NOK)",
+        "interval": "Billing interval",
+        "intervalMonthly": "Monthly",
+        "intervalYearly": "Yearly",
+        "accessType": "Access type",
+        "accessShared": "Shared PIN",
+        "accessIndividual": "Individual codes",
+        "save": "Save settings"
+      },
+      "language": {
+        "heading": "Language",
+        "label": "Admin interface language",
+        "en": "English",
+        "nb": "Norwegian (Bokmål)",
+        "save": "Save language"
+      },
+      "stripe": {
+        "heading": "Stripe Connect",
+        "connected": "Connected",
+        "notConnected": "Not connected",
+        "connect": "Connect Stripe",
+        "manage": "Manage Stripe account"
+      },
+      "plan": {
+        "heading": "Plan & Billing",
+        "currentPlan": "Current plan",
+        "upgradeToProMonthly": "Upgrade to Pro — 299 kr/month",
+        "upgradeToProYearly": "Upgrade to Pro — 2 490 kr/year",
+        "manageSubscription": "Manage subscription",
+        "cancelPlan": "Cancel Pro plan"
+      },
+      "igloohome": {
+        "heading": "igloohome Direct",
+        "connected": "Connected",
+        "notConnected": "Not connected",
+        "configure": "Configure",
+        "clientId": "Client ID",
+        "clientSecret": "Client Secret",
+        "lockId": "Lock ID",
+        "save": "Save igloohome settings",
+        "disconnect": "Disconnect"
+      },
+      "notifications": {
+        "heading": "Email notifications",
+        "welcome": "Welcome email",
+        "paymentReceipt": "Payment receipt",
+        "paymentFailed": "Payment failed",
+        "cancellation": "Cancellation",
+        "subject": "Subject",
+        "body": "Body",
+        "save": "Save template",
+        "variables": "Available variables"
+      },
+      "saved": "Settings saved",
+      "error": "Failed to save settings"
+    }
+  }
+}

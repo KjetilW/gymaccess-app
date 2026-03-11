@@ -1,0 +1,431 @@
+{
+  "meta": {
+    "landing": {
+      "title": "GymAccess — Administrasjon av treningssentermedlemskap",
+      "description": "Automatisert medlemsadministrasjon for små lokalgymer. Registrering, betalinger og tilgangskontroll på ett sted.",
+      "ogTitle": "GymAccess — Administrasjon av treningssentermedlemskap",
+      "ogDescription": "Automatisert medlemsadministrasjon for små lokalgymer."
+    },
+    "join": {
+      "title": "Bli medlem hos {gymName} — GymAccess",
+      "description": "Registrer deg for et medlemskap hos {gymName}."
+    },
+    "manage": {
+      "title": "Administrer medlemskap — GymAccess",
+      "description": "Administrer ditt treningssentermedlemskap."
+    }
+  },
+  "nav": {
+    "signIn": "Logg inn",
+    "register": "Registrer treningssenteret ditt",
+    "support": "Support"
+  },
+  "landing": {
+    "badge": "Bygget for lokalgymer med 20–200 medlemmer",
+    "hero": {
+      "headline1": "Slutt å jage betalinger.",
+      "headline2": "Begynn å drive treningssenteret ditt.",
+      "body": "GymAccess automatiserer registreringer, gjentakende betalinger og dørtilgang — så du kan bruke mindre tid på administrasjon og mer tid på treningssenteret ditt.",
+      "ctaPrimary": "Kom i gang gratis →",
+      "ctaSecondary": "Se hvordan det fungerer"
+    },
+    "pain": {
+      "heading": "Kjent problemstilling?",
+      "spreadsheet": {
+        "title": "Regneark-kaos",
+        "body": "Sporer medlemmer i Excel. Hvem har betalt? Hvem har ikke? Ingen vet."
+      },
+      "chasing": {
+        "title": "Jage betalinger",
+        "body": "Sender påminnelser på Vipps, bankoverføring eller WhatsApp. Hver. Eneste. Måned."
+      },
+      "codes": {
+        "title": "Dele dørkoden",
+        "body": "Sender koder manuelt. Tidligere medlemmer har fortsatt tilgang."
+      },
+      "nooverview": {
+        "title": "Ingen oversikt",
+        "body": "Ingen dashbord. Ingen historikk. Bare innboksen din og et håp."
+      }
+    },
+    "features": {
+      "heading": "Automatiser det kjedelige",
+      "subheading": "Alt som pleide å ta timer — kjører nå av seg selv.",
+      "before": "Før",
+      "after": "Etter",
+      "signup": {
+        "title": "Medlemsregistrering",
+        "before": "Nye medlemmer sender deg melding. Du legger dem til i regnearket. Kanskje.",
+        "after": "Del registreringslenken til treningssenteret ditt. Medlemmer registrerer og betaler selv."
+      },
+      "payments": {
+        "title": "Gjentakende betalinger",
+        "before": "Månedlige påminnelser. Vanskelige oppfølginger. Tapte inntekter.",
+        "after": "Stripe håndterer fakturering automatisk. Mislykkede betalinger prøves på nytt. Du får varsel."
+      },
+      "access": {
+        "title": "Tilgangskontroll",
+        "before": "Sender dørkoden manuelt. Endrer koden når noen slutter. Glemmer det.",
+        "after": "Koder utstedes ved betaling, tilbakekalles ved kansellering. Støtter delte PINer, individuelle koder eller smarte låser."
+      }
+    },
+    "howItWorks": {
+      "heading": "Oppe og kjører på 15 minutter",
+      "subheading": "Ingen tekniske ferdigheter nødvendig. Ingen maskinvare kreves.",
+      "step1": { "title": "Opprett treningssenteret ditt", "body": "Sett navn, pris og faktureringssyklus. Det er alt." },
+      "step2": { "title": "Del lenken din", "body": "Hvert treningssenter får en registreringsside. Send den til medlemmer." },
+      "step3": { "title": "Medlemmer betaler og får tilgang", "body": "De registrerer seg via Stripe og mottar dørkoden umiddelbart." },
+      "step4": { "title": "Du er ferdig", "body": "Fornyelser, påminnelser og tilbakekalling av tilgang skjer automatisk." }
+    },
+    "pricing": {
+      "heading": "Enkel, transparent prising",
+      "subheading": "Start gratis. Oppgrader når du er klar.",
+      "saveOnFees": "Spar på avgifter",
+      "starter": {
+        "name": "Starter",
+        "price": "Gratis",
+        "fee": "3% plattformavgift på medlemsbetalinger",
+        "cta": "Kom i gang gratis →",
+        "features": [
+          "Ubegrenset antall medlemmer",
+          "Automatiserte betalinger via Stripe",
+          "Administrasjon av tilgangskoder",
+          "Støtte for igloohome-lås",
+          "E-postvarsler",
+          "Administrasjonsdashbord"
+        ]
+      },
+      "pro": {
+        "name": "Pro",
+        "price": "299 kr",
+        "interval": "/måned",
+        "fee": "1% plattformavgift · eller 2 490 kr/år",
+        "cta": "Start med Pro →",
+        "features": [
+          "Alt i Starter",
+          "1% plattformavgift (mot 3%)",
+          "Lavere kostnad etter hvert som du vokser"
+        ]
+      }
+    },
+    "faq": {
+      "heading": "Vanlige spørsmål",
+      "q1": "Trenger jeg tekniske ferdigheter?",
+      "a1": "Nei. Hvis du kan fylle ut et skjema, kan du sette opp GymAccess. Det tar omtrent 15 minutter.",
+      "q2": "Hva med eksisterende medlemmer?",
+      "a2": "Du kan legge til eksisterende medlemmer manuelt fra administrasjonsdashbordet og sende dem en registreringslenke for å starte automatisk betaling.",
+      "q3": "Hvilke betalingsmetoder bruker medlemmer?",
+      "a3": "Kortbetalinger via Stripe. Medlemmer legger inn kortet sitt én gang og faktureres automatisk.",
+      "q4": "Hvordan fungerer tilgangskontrollen?",
+      "a4": "Du velger: delt PIN for hele treningssenteret, individuelle koder per medlem eller smart låsintegrering med igloohome. Koder sendes automatisk ved betaling og tilbakekalles ved kansellering.",
+      "q5": "Kan jeg kansellere når som helst?",
+      "a5": "Ja. Ingen bindingstid, ingen kontrakter. Kanseller fra dashbordet ditt."
+    },
+    "cta": {
+      "heading1": "Treningssenteret ditt er åpent 24/7.",
+      "heading2": "Administrasjonen din bør ikke være det.",
+      "body": "Sett opp GymAccess på 15 minutter og jag aldri en betaling igjen.",
+      "button": "Kom i gang gratis →"
+    },
+    "footer": {
+      "tagline": "Bygget for lokalgymer",
+      "register": "Registrer",
+      "signIn": "Logg inn",
+      "support": "Support",
+      "copyright": "© {year} GymAccess. Alle rettigheter forbeholdt."
+    }
+  },
+  "join": {
+    "loading": "",
+    "notFound": {
+      "title": "Treningssenter ikke funnet",
+      "body": "Denne registreringslenken kan være ugyldig eller utløpt.",
+      "back": "Tilbake til hjem"
+    },
+    "gymCard": {
+      "label": "Bli med",
+      "year": "år",
+      "month": "måned"
+    },
+    "form": {
+      "heading": "Dine opplysninger",
+      "name": { "label": "Fullt navn", "placeholder": "Ditt navn", "error": "Navn er påkrevd" },
+      "email": { "label": "E-postadresse", "placeholder": "deg@eksempel.no", "errorRequired": "E-post er påkrevd", "errorInvalid": "Vennligst skriv inn en gyldig e-postadresse" },
+      "phone": { "label": "Telefonnummer", "optional": "(valgfritt)", "placeholder": "+47 123 45 678" },
+      "terms": { "text": "Jeg godtar", "link": "vilkårene og betingelsene", "suffix": "og forstår at mitt medlemskap fornyes automatisk til det kanselleres.", "error": "Du må godta vilkårene for å gå videre" },
+      "submit": "Gå til betaling — NOK {price}",
+      "submitting": "Oppretter konto…",
+      "submitError": "Noe gikk galt. Vennligst prøv igjen."
+    },
+    "footer": {
+      "security": "Sikre betalinger av Stripe · Medlemsdata er kryptert"
+    }
+  },
+  "payment": {
+    "loading": {
+      "title": "Omdirigerer til sikker betaling…",
+      "poweredBy": "Drevet av Stripe"
+    },
+    "error": {
+      "title": "Betalingsoppsett mislyktes",
+      "backToSignup": "Tilbake til registrering",
+      "missingMember": "Mangler medlemsinformasjon. Vennligst registrer deg på nytt.",
+      "connectionError": "Kunne ikke koble til betalingstjenesten. Vennligst prøv igjen."
+    }
+  },
+  "success": {
+    "activating": "Aktiverer ditt medlemskap…",
+    "title": "Betaling vellykket!",
+    "body": "Velkommen! Ditt medlemskap er nå aktivt. Sjekk e-posten din for tilgangskoden din.",
+    "nextSteps": {
+      "heading": "Hva skjer videre?",
+      "step1": "Du vil motta en velkomst-e-post med tilgangskoden din",
+      "step2": "Ditt medlemskap fornyes automatisk hver faktureringsperiode",
+      "step3": "Sjekk e-posten din for en lenke til å administrere abonnementet ditt"
+    }
+  },
+  "manage": {
+    "loading": "Laster ditt medlemskap…",
+    "error": {
+      "title": "Ugyldig lenke",
+      "body": "Denne administrasjonslenken er ugyldig eller har utløpt. Vennligst kontakt treningssenterets administrator."
+    },
+    "membershipAt": "Medlemskap hos",
+    "labels": {
+      "member": "Medlem",
+      "email": "E-post",
+      "plan": "Plan",
+      "status": "Status"
+    },
+    "interval": { "year": "år", "month": "måned" },
+    "actions": {
+      "manage": "Administrer abonnement",
+      "managing": "Åpner…",
+      "updatePayment": "Oppdater betalingsmetode"
+    },
+    "states": {
+      "pastDue": "Din siste betaling mislyktes. Vennligst oppdater betalingsmetoden din for å gjenopprette tilgang.",
+      "cancelled": "Ditt medlemskap er kansellert. Kontakt treningssenteret ditt for å bli med igjen.",
+      "pending": "Ditt medlemskap venter på betaling. Sjekk e-posten din for betalingslenken.",
+      "suspended": "Ditt medlemskap er suspendert. Vennligst kontakt treningssenterets administrator."
+    }
+  },
+  "common": {
+    "status": {
+      "active": "Aktiv",
+      "pending": "Venter",
+      "past_due": "Forfalt",
+      "cancelled": "Kansellert",
+      "suspended": "Suspendert",
+      "expired": "Utløpt"
+    },
+    "actions": {
+      "save": "Lagre",
+      "saving": "Lagrer…",
+      "cancel": "Avbryt",
+      "delete": "Slett",
+      "back": "Tilbake"
+    },
+    "appName": "GymAccess"
+  },
+  "banner": {
+    "text": "Siden er tilgjengelig på norsk.",
+    "cta": "Bytt til norsk →",
+    "dismiss": "Lukk"
+  },
+  "languageSwitcher": {
+    "en": "EN",
+    "nb": "NB"
+  },
+  "admin": {
+    "nav": {
+      "members": "Medlemmer",
+      "access": "Tilgang",
+      "payments": "Betalinger",
+      "settings": "Innstillinger",
+      "signOut": "Logg ut"
+    },
+    "banners": {
+      "stripeNotConnected": {
+        "title": "Stripe ikke tilkoblet.",
+        "body": "Medlemmene dine vil ikke kunne betale før du kobler til Stripe-kontoen din.",
+        "cta": "Koble til Stripe"
+      },
+      "stripePending": {
+        "title": "Stripe-oppsett ufullstendig.",
+        "body": "Fullfør Stripe-onboardingen for å begynne å motta medlemsbetalinger.",
+        "cta": "Fullfør oppsett"
+      },
+      "saasPastDue": {
+        "title": "Betalingsproblem med Pro-abonnementet ditt.",
+        "body": "Oppdater betalingsmetoden din for å beholde 1% transaksjonsavgiften.",
+        "cta": "Fiks nå"
+      },
+      "saasStarter": {
+        "body": "Du bruker Starter-planen (3% transaksjonsavgift).",
+        "upgrade": "Oppgrader til Pro for bare 1%.",
+        "cta": "Oppgrader"
+      }
+    },
+    "login": {
+      "title": "Logg inn på GymAccess",
+      "subtitle": "Administrer treningssenterets medlemssystem",
+      "email": "E-postadresse",
+      "password": "Passord",
+      "submit": "Logg inn",
+      "submitting": "Logger inn…",
+      "noAccount": "Har du ikke en konto?",
+      "register": "Registrer treningssenteret ditt",
+      "error": "Ugyldig e-post eller passord"
+    },
+    "register": {
+      "title": "Registrer treningssenteret ditt",
+      "steps": {
+        "account": "Konto",
+        "plan": "Plan",
+        "pricing": "Prissetting",
+        "access": "Tilgang"
+      },
+      "submit": "Opprett treningssenter",
+      "submitting": "Oppretter…",
+      "alreadyHave": "Har du allerede en konto?",
+      "signIn": "Logg inn"
+    },
+    "members": {
+      "title": "Medlemmer",
+      "search": "Søk etter medlemmer…",
+      "filterAll": "Alle statuser",
+      "copyLink": "Kopier registreringslenke",
+      "linkCopied": "Lenke kopiert!",
+      "addMember": "Legg til medlem",
+      "table": {
+        "name": "Navn",
+        "email": "E-post",
+        "status": "Status",
+        "accessCode": "Tilgangskode",
+        "joined": "Ble med",
+        "actions": "Handlinger"
+      },
+      "actions": {
+        "suspend": "Suspender",
+        "cancel": "Kanseller",
+        "resend": "Send e-post på nytt",
+        "viewDetails": "Se detaljer"
+      },
+      "noMembers": "Ingen medlemmer funnet.",
+      "pagination": {
+        "previous": "Forrige",
+        "next": "Neste",
+        "of": "av",
+        "page": "Side"
+      },
+      "confirmSuspend": {
+        "title": "Suspender {name}?",
+        "body": "Dette vil tilbakekalle tilgangskoden deres. De kan reaktiveres senere.",
+        "confirm": "Suspender",
+        "cancel": "Avbryt"
+      },
+      "confirmCancel": {
+        "title": "Kanseller medlemskap for {name}?",
+        "body": "Dette vil kansellere Stripe-abonnementet og tilbakekalle tilgang. Dette kan ikke angres.",
+        "confirm": "Kanseller medlemskap",
+        "cancel": "Behold medlemskap"
+      }
+    },
+    "payments": {
+      "title": "Betalinger",
+      "table": {
+        "member": "Medlem",
+        "amount": "Beløp",
+        "status": "Status",
+        "date": "Dato",
+        "description": "Beskrivelse"
+      },
+      "noPayments": "Ingen betalinger funnet.",
+      "status": {
+        "paid": "Betalt",
+        "failed": "Mislyktes",
+        "pending": "Venter",
+        "refunded": "Refundert"
+      }
+    },
+    "access": {
+      "title": "Tilgang",
+      "table": {
+        "member": "Medlem",
+        "code": "Tilgangskode",
+        "type": "Type",
+        "validFrom": "Gyldig fra",
+        "validTo": "Gyldig til"
+      },
+      "noAccess": "Ingen tilgangskoder funnet.",
+      "types": {
+        "shared_pin": "Delt PIN",
+        "individual": "Individuell",
+        "igloohome_direct": "igloohome"
+      }
+    },
+    "settings": {
+      "title": "Innstillinger",
+      "gym": {
+        "heading": "Treningssenterinnstillinger",
+        "name": "Navn på treningssenter",
+        "location": "Sted",
+        "price": "Medlemskapspris (NOK)",
+        "interval": "Faktureringsintervall",
+        "intervalMonthly": "Månedlig",
+        "intervalYearly": "Årlig",
+        "accessType": "Tilgangstype",
+        "accessShared": "Delt PIN",
+        "accessIndividual": "Individuelle koder",
+        "save": "Lagre innstillinger"
+      },
+      "language": {
+        "heading": "Språk",
+        "label": "Administrasjonsgrensesnittets språk",
+        "en": "Engelsk",
+        "nb": "Norsk (Bokmål)",
+        "save": "Lagre språk"
+      },
+      "stripe": {
+        "heading": "Stripe Connect",
+        "connected": "Tilkoblet",
+        "notConnected": "Ikke tilkoblet",
+        "connect": "Koble til Stripe",
+        "manage": "Administrer Stripe-konto"
+      },
+      "plan": {
+        "heading": "Plan og fakturering",
+        "currentPlan": "Gjeldende plan",
+        "upgradeToProMonthly": "Oppgrader til Pro — 299 kr/måned",
+        "upgradeToProYearly": "Oppgrader til Pro — 2 490 kr/år",
+        "manageSubscription": "Administrer abonnement",
+        "cancelPlan": "Kanseller Pro-plan"
+      },
+      "igloohome": {
+        "heading": "igloohome Direct",
+        "connected": "Tilkoblet",
+        "notConnected": "Ikke tilkoblet",
+        "configure": "Konfigurer",
+        "clientId": "Klient-ID",
+        "clientSecret": "Klienthemmelighet",
+        "lockId": "Lås-ID",
+        "save": "Lagre igloohome-innstillinger",
+        "disconnect": "Koble fra"
+      },
+      "notifications": {
+        "heading": "E-postvarsler",
+        "welcome": "Velkomst-e-post",
+        "paymentReceipt": "Betalingskvittering",
+        "paymentFailed": "Betaling mislyktes",
+        "cancellation": "Kansellering",
+        "subject": "Emne",
+        "body": "Innhold",
+        "save": "Lagre mal",
+        "variables": "Tilgjengelige variabler"
+      },
+      "saved": "Innstillinger lagret",
+      "error": "Kunne ikke lagre innstillinger"
+    }
+  }
+}

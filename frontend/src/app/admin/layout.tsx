@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Logo } from '../components/Logo';
+import { plusJakarta, dmSans } from '../layout';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -137,14 +138,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [pathname, router]);
 
   if (pathname === '/admin/login' || pathname === '/admin/register') {
-    return <>{children}</>;
+    return (
+      <html lang="en" className={`${plusJakarta.variable} ${dmSans.variable}`}>
+        <body className="min-h-screen bg-warm-50 text-forest-900 antialiased font-body">
+          {children}
+        </body>
+      </html>
+    );
   }
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-warm-50 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-forest-900 border-t-transparent rounded-full animate-spin" />
-      </div>
+      <html lang="en" className={`${plusJakarta.variable} ${dmSans.variable}`}>
+        <body className="min-h-screen bg-warm-50 text-forest-900 antialiased font-body">
+          <div className="min-h-screen bg-warm-50 flex items-center justify-center">
+            <div className="w-6 h-6 border-2 border-forest-900 border-t-transparent rounded-full animate-spin" />
+          </div>
+        </body>
+      </html>
     );
   }
 
@@ -156,6 +167,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   ];
 
   return (
+    <html lang="en" className={`${plusJakarta.variable} ${dmSans.variable}`}>
+    <body className="min-h-screen bg-warm-50 text-forest-900 antialiased font-body">
     <div className="min-h-screen bg-warm-50 flex flex-col">
       <header className="bg-forest-900 text-white px-6 py-0 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3 py-4">
@@ -209,5 +222,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {children}
       </main>
     </div>
+    </body>
+    </html>
   );
 }

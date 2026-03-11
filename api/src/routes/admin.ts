@@ -575,7 +575,7 @@ adminRoutes.post('/saas/portal', async (req: AuthRequest, res) => {
 // Update gym settings
 adminRoutes.put('/settings', async (req: AuthRequest, res) => {
   try {
-    const { membershipPrice, billingInterval, accessType, igloohome_lock_id, igloohome_client_id, igloohome_client_secret } = req.body;
+    const { membershipPrice, billingInterval, accessType, igloohome_lock_id, igloohome_client_id, igloohome_client_secret, admin_language } = req.body;
 
     const updates: string[] = [];
     const values: any[] = [];
@@ -606,6 +606,10 @@ adminRoutes.put('/settings', async (req: AuthRequest, res) => {
     if (igloohome_client_secret && typeof igloohome_client_secret === 'string') {
       updates.push(`igloohome_client_secret = $${paramCount++}`);
       values.push(igloohome_client_secret);
+    }
+    if (admin_language && ['en', 'nb'].includes(admin_language)) {
+      updates.push(`admin_language = $${paramCount++}`);
+      values.push(admin_language);
     }
 
     updates.push(`updated_at = NOW()`);

@@ -173,6 +173,9 @@ const migrations = `
   ALTER TABLE members ADD COLUMN IF NOT EXISTS manage_token VARCHAR(255);
   CREATE UNIQUE INDEX IF NOT EXISTS idx_members_manage_token ON members(manage_token) WHERE manage_token IS NOT NULL;
   UPDATE members SET manage_token = REPLACE(gen_random_uuid()::TEXT, '-', '') || REPLACE(gen_random_uuid()::TEXT, '-', '') WHERE manage_token IS NULL;
+
+  -- i18n: per-gym admin language preference
+  ALTER TABLE gyms ADD COLUMN IF NOT EXISTS admin_language VARCHAR(10) NOT NULL DEFAULT 'en';
 `;
 
 export async function runMigrations() {

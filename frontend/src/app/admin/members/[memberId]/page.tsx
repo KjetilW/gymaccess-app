@@ -35,7 +35,8 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function MemberDetailPage() {
-  const { memberId } = useParams<{ memberId: string }>();
+  const params = useParams<{ memberId: string }>();
+  const memberId = params?.memberId;
   const router = useRouter();
   const [member, setMember] = useState<MemberDetail | null>(null);
   const [loading, setLoading] = useState(true);

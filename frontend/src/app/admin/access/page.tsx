@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -18,6 +19,7 @@ interface AccessData {
 }
 
 export default function AccessPage() {
+  const t = useTranslations('admin.access');
   const [data, setData] = useState<AccessData | null>(null);
   const [loading, setLoading] = useState(true);
   const [rotating, setRotating] = useState(false);
@@ -56,9 +58,9 @@ export default function AccessPage() {
 
   const accessTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      shared_pin: 'Shared PIN',
-      individual_pin: 'Individual PIN',
-      smart_lock: 'Smart Lock',
+      shared_pin: t('types.shared_pin'),
+      individual_pin: t('types.individual'),
+      smart_lock: t('types.igloohome_direct'),
     };
     return labels[type] || type;
   };
@@ -66,7 +68,7 @@ export default function AccessPage() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
       <div className="mb-6">
-        <h1 className="font-display font-bold text-2xl text-forest-900">Access Control</h1>
+        <h1 className="font-display font-bold text-2xl text-forest-900">{t('title')}</h1>
         <p className="text-gray-500 text-sm mt-0.5">Manage member access codes</p>
       </div>
 
@@ -124,9 +126,9 @@ export default function AccessPage() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-warm-50 border-b border-warm-100">
-                    <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Member</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Code</th>
-                    <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Valid From</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{t('table.member')}</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{t('table.code')}</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{t('table.validFrom')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-warm-50">
@@ -149,7 +151,7 @@ export default function AccessPage() {
           {data.codes.length === 0 && data.accessType !== 'shared_pin' && (
             <div className="bg-white rounded-2xl border border-warm-200 p-12 text-center">
               <div className="text-4xl mb-3">🔑</div>
-              <p className="text-gray-500 text-sm">No access codes yet. Codes are generated when members activate their membership.</p>
+              <p className="text-gray-500 text-sm">{t('noAccess')}</p>
             </div>
           )}
         </div>

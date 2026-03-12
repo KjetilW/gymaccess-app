@@ -3,11 +3,13 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useTranslations('admin.login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,7 +31,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'Invalid email or password');
+        setError(data.error || t('error'));
         return;
       }
       localStorage.setItem('token', data.token);
@@ -50,7 +52,7 @@ export default function LoginPage() {
           <Link href="/" className="inline-block font-display font-extrabold text-3xl text-forest-900">
             GymAccess
           </Link>
-          <p className="text-gray-500 mt-2">Sign in to your gym admin</p>
+          <p className="text-gray-500 mt-2">{t('subtitle')}</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-warm-200 shadow-sm p-8">
@@ -62,7 +64,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} noValidate className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-forest-800 mb-1.5">Email address</label>
+              <label className="block text-sm font-semibold text-forest-800 mb-1.5">{t('email')}</label>
               <input
                 type="email"
                 value={email}
@@ -73,7 +75,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-forest-800 mb-1.5">Password</label>
+              <label className="block text-sm font-semibold text-forest-800 mb-1.5">{t('password')}</label>
               <input
                 type="password"
                 value={password}
@@ -94,19 +96,19 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Signing in…
+                  {t('submitting')}
                 </span>
               ) : (
-                'Sign in →'
+                `${t('submit')} →`
               )}
             </button>
           </form>
         </div>
 
         <p className="text-center text-gray-500 text-sm mt-6">
-          Don&apos;t have a gym account?{' '}
+          {t('noAccount')}{' '}
           <Link href="/admin/register" className="text-sage-dark font-semibold hover:underline">
-            Register your gym
+            {t('register')}
           </Link>
         </p>
       </div>

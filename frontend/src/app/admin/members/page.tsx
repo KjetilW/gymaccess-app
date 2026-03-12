@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -40,6 +41,8 @@ interface ConfirmModal {
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export default function MembersPage() {
+  const t = useTranslations('admin.members');
+  const tStatus = useTranslations('common.status');
   const [members, setMembers] = useState<Member[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,11 +126,19 @@ export default function MembersPage() {
     cancelled: members.filter(m => m.status === 'cancelled').length,
   };
 
+  const getStatusLabel = (status: string) => {
+    try {
+      return tStatus(status as Parameters<typeof tStatus>[0]);
+    } catch {
+      return status.replace('_', ' ');
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display font-bold text-2xl text-forest-900">Members</h1>
+          <h1 className="font-display font-bold text-2xl text-forest-900">{t('title')}</h1>
           <p className="text-gray-500 text-sm mt-0.5">
             {pagination ? `${pagination.total} total` : `${members.length} total`}
           </p>
@@ -146,7 +157,7 @@ export default function MembersPage() {
               }}
               className="ml-2 px-3 py-1.5 text-xs font-semibold bg-forest-900 text-white rounded-lg hover:bg-forest-800 transition-colors whitespace-nowrap"
             >
-              {linkCopied ? '✓ Copied' : 'Copy'}
+              {linkCopied ? `✓ ${t('linkCopied')}` : t('copyLink')}
             </button>
           </div>
         )}
@@ -156,14 +167,14 @@ export default function MembersPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           {[
             { label: 'Total', count: pagination?.total ?? counts.total, color: 'bg-white border-warm-200 text-forest-900', click: '' },
-            { label: 'Active', count: counts.active, color: 'bg-forest-50 border-forest-100 text-forest-800', click: 'active' },
-            { label: 'Pending', count: counts.pending, color: 'bg-yellow-50 border-yellow-100 text-yellow-800', click: 'pending' },
-            { label: 'Past Due', count: counts.past_due, color: 'bg-orange-50 border-orange-100 text-orange-800', click: 'past_due' },
-            { label: 'Suspended', count: counts.suspended, color: 'bg-red-50 border-red-100 text-red-700', click: 'suspended' },
-            { label: 'Cancelled', count: counts.cancelled, color: 'bg-gray-50 border-gray-100 text-gray-600', click: 'cancelled' },
+            { label: tStatus('active'), count: counts.active, color: 'bg-forest-50 border-forest-100 text-forest-800', click: 'active' },
+            { label: tStatus('pending'), count: counts.pending, color: 'bg-yellow-50 border-yellow-100 text-yellow-800', click: 'pending' },
+            { label: tStatus('past_due'), count: counts.past_due, color: 'bg-orange-50 border-orange-100 text-orange-800', click: 'past_due' },
+            { label: tStatus('suspended'), count: counts.suspended, color: 'bg-red-50 border-red-100 text-red-700', click: 'suspended' },
+            { label: tStatus('cancelled'), count: counts.cancelled, color: 'bg-gray-50 border-gray-100 text-gray-600', click: 'cancelled' },
           ].map(({ label, count, color, click }) => (
             <button
-              key={label}
+              key={click || 'total'}
               onClick={() => handleStatusFilter(click)}
               className={`rounded-xl border px-4 py-3 text-left transition-all ${color} ${statusFilter === click ? 'ring-2 ring-forest-900 ring-offset-1' : 'hover:shadow-sm'}`}
             >
@@ -182,7 +193,7 @@ export default function MembersPage() {
             </svg>
             <input
               type="text"
-              placeholder="Search by name or email…"
+              placeholder={t('search')}
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={e => {
@@ -199,13 +210,13 @@ export default function MembersPage() {
             onChange={e => { setStatusFilter(e.target.value); setCurrentPage(1); loadMembers(search, e.target.value, 1); }}
             className="px-3 py-2 rounded-xl border border-warm-200 text-sm text-forest-900 focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent bg-white"
           >
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="pending">Pending</option>
-            <option value="past_due">Past Due</option>
-            <option value="suspended">Suspended</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="expired">Expired</option>
+            <option value="">{t('filterAll')}</option>
+            <option value="active">{tStatus('active')}</option>
+            <option value="pending">{tStatus('pending')}</option>
+            <option value="past_due">{tStatus('past_due')}</option>
+            <option value="suspended">{tStatus('suspended')}</option>
+            <option value="cancelled">{tStatus('cancelled')}</option>
+            <option value="expired">{tStatus('expired')}</option>
           </select>
           <button
             onClick={() => { setCurrentPage(1); loadMembers(search, statusFilter, 1); }}
@@ -225,7 +236,7 @@ export default function MembersPage() {
           <div className="p-16 text-center">
             <div className="w-16 h-16 bg-forest-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl">👥</div>
             <h3 className="font-display font-bold text-xl text-forest-900 mb-2">
-              {statusFilter ? `No ${statusFilter} members` : 'No members yet'}
+              {statusFilter ? `No ${statusFilter} members` : t('noMembers')}
             </h3>
             <p className="text-gray-500 text-sm">
               {statusFilter ? 'Try a different filter.' : "Share your gym's signup link to get started."}
@@ -236,11 +247,11 @@ export default function MembersPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-warm-50 border-b border-warm-100">
-                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Member</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Status</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Access Code</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Joined</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Actions</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{t('table.name')}</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{t('table.status')}</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{t('table.accessCode')}</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{t('table.joined')}</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400">{t('table.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-warm-50">
@@ -253,7 +264,7 @@ export default function MembersPage() {
                     </td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${STATUS_STYLES[member.status] || 'bg-gray-100 text-gray-600'}`}>
-                        {member.status.replace('_', ' ')}
+                        {getStatusLabel(member.status)}
                       </span>
                     </td>
                     <td className="px-5 py-4">
@@ -276,7 +287,7 @@ export default function MembersPage() {
                             disabled={actionLoading === member.member_id + 'resend'}
                             className="text-xs text-forest-700 hover:text-forest-900 font-medium hover:underline disabled:opacity-50"
                           >
-                            {actionLoading === member.member_id + 'resend' ? 'Sending…' : 'Resend'}
+                            {actionLoading === member.member_id + 'resend' ? 'Sending…' : t('actions.resend')}
                           </button>
                         )}
                         {member.status === 'active' && (
@@ -285,7 +296,7 @@ export default function MembersPage() {
                             disabled={actionLoading === member.member_id + 'suspend'}
                             className="text-xs text-orange-600 hover:text-orange-800 font-medium hover:underline disabled:opacity-50"
                           >
-                            Suspend
+                            {t('actions.suspend')}
                           </button>
                         )}
                         {member.status !== 'cancelled' && (
@@ -294,7 +305,7 @@ export default function MembersPage() {
                             disabled={actionLoading === member.member_id + 'cancel'}
                             className="text-xs text-red-500 hover:text-red-700 font-medium hover:underline disabled:opacity-50"
                           >
-                            Cancel
+                            {t('actions.cancel')}
                           </button>
                         )}
                       </div>
@@ -316,7 +327,7 @@ export default function MembersPage() {
                     disabled={currentPage === 1}
                     className="px-3 py-1.5 text-sm rounded-lg border border-warm-200 text-forest-800 hover:bg-warm-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
-                    ← Prev
+                    ← {t('pagination.previous')}
                   </button>
                   {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
                     const start = Math.max(1, Math.min(currentPage - 2, pagination.pages - 4));
@@ -336,7 +347,7 @@ export default function MembersPage() {
                     disabled={currentPage === pagination.pages}
                     className="px-3 py-1.5 text-sm rounded-lg border border-warm-200 text-forest-800 hover:bg-warm-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
-                    Next →
+                    {t('pagination.next')} →
                   </button>
                 </div>
               </div>
@@ -350,19 +361,21 @@ export default function MembersPage() {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
             <h3 className="font-display font-bold text-xl text-forest-900 mb-2">
-              {confirmModal.action === 'suspend' ? 'Suspend member?' : 'Cancel membership?'}
+              {confirmModal.action === 'suspend'
+                ? t('confirmSuspend.title', { name: confirmModal.memberName })
+                : t('confirmCancel.title', { name: confirmModal.memberName })}
             </h3>
             <p className="text-sm text-gray-600 mb-6">
               {confirmModal.action === 'suspend'
-                ? `This will suspend ${confirmModal.memberName}'s access. They can be reactivated later.`
-                : `This will cancel ${confirmModal.memberName}'s membership and revoke their access code. This action cannot be easily undone.`}
+                ? t('confirmSuspend.body')
+                : t('confirmCancel.body')}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setConfirmModal(null)}
                 className="flex-1 px-4 py-2.5 rounded-xl border border-warm-200 text-sm font-medium text-forest-800 hover:bg-warm-50 transition-colors"
               >
-                Cancel
+                {confirmModal.action === 'suspend' ? t('confirmSuspend.cancel') : t('confirmCancel.cancel')}
               </button>
               <button
                 onClick={async () => {
@@ -376,7 +389,7 @@ export default function MembersPage() {
                     : 'bg-red-500 hover:bg-red-600'
                 }`}
               >
-                {confirmModal.action === 'suspend' ? 'Suspend' : 'Cancel membership'}
+                {confirmModal.action === 'suspend' ? t('confirmSuspend.confirm') : t('confirmCancel.confirm')}
               </button>
             </div>
           </div>

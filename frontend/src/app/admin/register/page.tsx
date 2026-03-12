@@ -3,6 +3,7 @@
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -18,7 +19,6 @@ interface AccountForm {
 
 type AccountErrors = Partial<Record<keyof AccountForm, string>>;
 
-const STEP_LABELS = ['Account', 'Plan', 'Pricing', 'Access'];
 
 function calculateFees(price: number, platformFeePercent: number) {
   const stripeFeePercent = 1.4;
@@ -30,10 +30,10 @@ function calculateFees(price: number, platformFeePercent: number) {
 }
 
 // --- Progress Bar ---
-function ProgressBar({ current, completed }: { current: Step; completed: number }) {
+function ProgressBar({ current, completed, labels }: { current: Step; completed: number; labels: string[] }) {
   return (
     <div className="flex items-center justify-between mb-10">
-      {STEP_LABELS.map((label, i) => {
+      {labels.map((label, i) => {
         const step = (i + 1) as Step;
         const isCompleted = step < completed + 1 && step < current;
         const isCurrent = step === current;
@@ -121,6 +121,14 @@ const BRAND_CONTENT: Record<Step, { title: string; subtitle: string; items: stri
 export default function RegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations('admin.register');
+
+  const stepLabels = [
+    t('steps.account'),
+    t('steps.plan'),
+    t('steps.pricing'),
+    t('steps.access'),
+  ];
 
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [loading, setLoading] = useState(false);
@@ -372,7 +380,7 @@ export default function RegisterPage() {
             <Link href="/" className="font-display font-bold text-2xl text-forest-900">GymAccess</Link>
           </div>
 
-          <ProgressBar current={currentStep} completed={currentStep - 1} />
+          <ProgressBar current={currentStep} completed={currentStep - 1} labels={stepLabels} />
 
           <ErrorBanner message={serverError} />
 
@@ -383,8 +391,8 @@ export default function RegisterPage() {
                 Create your account
               </h1>
               <p className="text-gray-500 mb-8">
-                Already registered?{' '}
-                <Link href="/admin/login" className="text-sage-dark font-semibold hover:underline">Sign in</Link>
+                {t('alreadyHave')}{' '}
+                <Link href="/admin/login" className="text-sage-dark font-semibold hover:underline">{t('signIn')}</Link>
               </p>
 
               <form onSubmit={handleCreateAccount} noValidate className="space-y-8">
@@ -433,9 +441,9 @@ export default function RegisterPage() {
                   className="w-full py-4 px-8 bg-forest-900 text-white rounded-xl font-display font-bold text-base hover:bg-forest-800 active:bg-forest-950 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 shadow-lg shadow-forest-900/20"
                 >
                   {loading ? (
-                    <span className="flex items-center justify-center gap-2"><Spinner /> Creating your account…</span>
+                    <span className="flex items-center justify-center gap-2"><Spinner /> {t('submitting')}</span>
                   ) : (
-                    'Create account'
+                    t('submit')
                   )}
                 </button>
               </form>

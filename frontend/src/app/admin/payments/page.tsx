@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -12,6 +13,7 @@ interface PaymentStats {
 }
 
 export default function PaymentsPage() {
+  const t = useTranslations('admin.payments');
   const [stats, setStats] = useState<PaymentStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +38,7 @@ export default function PaymentsPage() {
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
       <div className="mb-6">
-        <h1 className="font-display font-bold text-2xl text-forest-900">Payments</h1>
+        <h1 className="font-display font-bold text-2xl text-forest-900">{t('title')}</h1>
         <p className="text-gray-500 text-sm mt-0.5">Revenue and subscription overview</p>
       </div>
 
@@ -71,7 +73,7 @@ export default function PaymentsPage() {
           />
         </div>
       ) : (
-        <p className="text-gray-500">Failed to load payment data.</p>
+        <p className="text-gray-500">{t('noPayments')}</p>
       )}
 
       <div className="mt-8 bg-white rounded-2xl border border-warm-200 p-6">

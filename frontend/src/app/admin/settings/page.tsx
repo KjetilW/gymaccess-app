@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
+import { useTranslations } from 'next-intl';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 interface GymSettings {
@@ -19,6 +20,7 @@ interface GymSettings {
   igloohome_lock_id: string | null;
   igloohome_client_id: string | null;
   igloohome_configured: boolean;
+  admin_language?: string;
 }
 
 interface NotificationTemplate {
@@ -50,19 +52,12 @@ const DEFAULT_TEMPLATES: NotificationTemplate[] = [
   },
 ];
 
-const TEMPLATE_LABELS: Record<string, string> = {
-  welcome: 'Welcome email',
-  payment_receipt: 'Payment receipt',
-  payment_failed: 'Payment failed reminder',
-  cancellation: 'Cancellation notice',
-};
-
-function ConnectStatusBadge({ status }: { status: string }) {
+function ConnectStatusBadge({ status, t }: { status: string; t: (key: string) => string }) {
   if (status === 'active') {
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-forest-100 text-forest-800">
         <span className="w-2 h-2 rounded-full bg-forest-600 inline-block" />
-        Connected
+        {t('stripe.connected')}
       </span>
     );
   }
@@ -77,12 +72,14 @@ function ConnectStatusBadge({ status }: { status: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
       <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
-      Not Connected
+      {t('stripe.notConnected')}
     </span>
   );
 }
 
 export default function SettingsPage() {
+  const t = useTranslations('admin.settings');
+
   const [settings, setSettings] = useState<GymSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -93,6 +90,10 @@ export default function SettingsPage() {
   const [price, setPrice] = useState('');
   const [billingInterval, setBillingInterval] = useState('monthly');
   const [accessType, setAccessType] = useState('shared_pin');
+
+  // Language state
+  const [adminLanguage, setAdminLanguage] = useState('en');
+  const [savingLanguage, setSavingLanguage] = useState(false);
 
   // Notification templates state
   const [templates, setTemplates] = useState<NotificationTemplate[]>(DEFAULT_TEMPLATES);
@@ -132,6 +133,7 @@ export default function SettingsPage() {
       setPrice(String(gymData.membership_price || ''));
       setBillingInterval(gymData.billing_interval || 'monthly');
       setAccessType(gymData.access_type || 'shared_pin');
+      setAdminLanguage(gymData.admin_language || 'en');
 
       // igloohome Direct state
       setIgloohomeLockId(gymData.igloohome_lock_id || '');
@@ -176,9 +178,25 @@ export default function SettingsPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch {
-      setError('Failed to save settings. Please try again.');
+      setError(t('error'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const saveLanguage = async () => {
+    setSavingLanguage(true);
+    const token = localStorage.getItem('token');
+    try {
+      await fetch(`${API_URL}/admin/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ admin_language: adminLanguage }),
+      });
+      localStorage.setItem('admin-lang', adminLanguage);
+      window.location.reload();
+    } finally {
+      setSavingLanguage(false);
     }
   };
 
@@ -203,8 +221,8 @@ export default function SettingsPage() {
         body: JSON.stringify({ subject: templateSubject, body: templateBody }),
       });
       if (!res.ok) throw new Error('Failed to save');
-      setTemplates(prev => prev.map(t =>
-        t.type === editingTemplate ? { ...t, subject: templateSubject, body: templateBody } : t
+      setTemplates(prev => prev.map(tmpl =>
+        tmpl.type === editingTemplate ? { ...tmpl, subject: templateSubject, body: templateBody } : tmpl
       ));
       setSavedTemplate(true);
       setTimeout(() => {
@@ -321,10 +339,17 @@ export default function SettingsPage() {
   const connectStatus = settings?.stripe_connect_status || 'not_connected';
   const connectAccountId = settings?.stripe_connect_account_id;
 
+  const templateLabels: Record<string, string> = {
+    welcome: t('notifications.welcome'),
+    payment_receipt: t('notifications.paymentReceipt'),
+    payment_failed: t('notifications.paymentFailed'),
+    cancellation: t('notifications.cancellation'),
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
       <div className="mb-6">
-        <h1 className="font-display font-bold text-2xl text-forest-900">Settings</h1>
+        <h1 className="font-display font-bold text-2xl text-forest-900">{t('title')}</h1>
         {settings && (
           <p className="text-gray-500 text-sm mt-0.5">{settings.name} · {settings.location}</p>
         )}
@@ -332,10 +357,10 @@ export default function SettingsPage() {
 
       <form onSubmit={handleSave} className="space-y-6">
         <div className="bg-white rounded-2xl border border-warm-200 p-6 space-y-5">
-          <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600">Membership</h2>
+          <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600">{t('gym.heading')}</h2>
 
           <div>
-            <label className="block text-sm font-semibold text-forest-800 mb-1.5">Membership price</label>
+            <label className="block text-sm font-semibold text-forest-800 mb-1.5">{t('gym.price')}</label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 font-semibold text-gray-400 text-sm select-none">NOK</span>
               <input
@@ -349,7 +374,7 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-forest-800 mb-2.5">Billing frequency</label>
+            <label className="block text-sm font-semibold text-forest-800 mb-2.5">{t('gym.interval')}</label>
             <div className="grid grid-cols-2 gap-3">
               {(['monthly', 'yearly'] as const).map(interval => (
                 <label
@@ -368,18 +393,18 @@ export default function SettingsPage() {
                     onChange={() => setBillingInterval(interval)}
                     className="sr-only"
                   />
-                  {interval === 'monthly' ? 'Monthly' : 'Yearly'}
+                  {interval === 'monthly' ? t('gym.intervalMonthly') : t('gym.intervalYearly')}
                 </label>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-forest-800 mb-2.5">Access control method</label>
+            <label className="block text-sm font-semibold text-forest-800 mb-2.5">{t('gym.accessType')}</label>
             <div className="space-y-2">
               {[
-                { value: 'shared_pin', label: 'Shared PIN', desc: 'One PIN for all active members.' },
-                { value: 'individual_pin', label: 'Individual PIN', desc: 'Unique PIN per member.' },
+                { value: 'shared_pin', label: t('gym.accessShared'), desc: 'One PIN for all active members.' },
+                { value: 'individual_pin', label: t('gym.accessIndividual'), desc: 'Unique PIN per member.' },
                 { value: 'smart_lock', label: 'Smart Lock', desc: 'igloohome lock integration.' },
               ].map(({ value, label, desc }) => (
                 <label
@@ -418,22 +443,53 @@ export default function SettingsPage() {
             disabled={saving}
             className="px-8 py-3 bg-forest-900 text-white rounded-xl font-display font-bold hover:bg-forest-800 disabled:opacity-50 transition-colors"
           >
-            {saving ? 'Saving…' : 'Save settings'}
+            {saving ? 'Saving…' : t('gym.save')}
           </button>
-          {saved && <p className="text-sm text-forest-700 font-medium">✓ Settings saved</p>}
+          {saved && <p className="text-sm text-forest-700 font-medium">✓ {t('saved')}</p>}
         </div>
       </form>
+
+      {/* Language */}
+      <div className="mt-8">
+        <div className="bg-white border border-warm-200 rounded-2xl p-6">
+          <h2 className="font-display font-semibold text-lg text-forest-900 mb-4">
+            {t('language.heading')}
+          </h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-forest-800 mb-1.5">
+                {t('language.label')}
+              </label>
+              <select
+                value={adminLanguage}
+                onChange={e => setAdminLanguage(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-warm-200 text-forest-900 focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent"
+              >
+                <option value="en">{t('language.en')}</option>
+                <option value="nb">{t('language.nb')}</option>
+              </select>
+            </div>
+            <button
+              onClick={saveLanguage}
+              disabled={savingLanguage}
+              className="bg-forest-900 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-forest-800 transition-colors disabled:opacity-50"
+            >
+              {t('language.save')}
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Stripe Connect Section */}
       <div className="mt-8">
         <div className="bg-white rounded-2xl border border-warm-200 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600">Stripe Connect</h2>
-            <ConnectStatusBadge status={connectStatus} />
+            <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600">{t('stripe.heading')}</h2>
+            <ConnectStatusBadge status={connectStatus} t={t as (key: string) => string} />
           </div>
 
           <p className="text-sm text-gray-500 mb-5">
-            Connect your Stripe account to receive member payments directly. GymAccess uses Stripe Connect to route member subscription payments to your gym's bank account.
+            Connect your Stripe account to receive member payments directly. GymAccess uses Stripe Connect to route member subscription payments to your gym&apos;s bank account.
           </p>
 
           {connectStatus === 'not_connected' && (
@@ -451,7 +507,7 @@ export default function SettingsPage() {
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
                   </svg>
                 )}
-                Connect with Stripe
+                {t('stripe.connect')}
               </button>
               {connectError && <p className="mt-2 text-xs text-red-600">{connectError}</p>}
             </>
@@ -502,7 +558,7 @@ export default function SettingsPage() {
       <div className="mt-6">
         <div className="bg-white rounded-2xl border border-warm-200 p-6">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600">Smart Lock — igloohome Direct</h2>
+            <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600">{t('igloohome.heading')}</h2>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-forest-100 text-forest-800 border border-forest-200">Free</span>
           </div>
           <p className="text-sm text-gray-500 mb-5">
@@ -534,7 +590,7 @@ export default function SettingsPage() {
                 onClick={() => setIgloohomeStep(1)}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-forest-900 text-white rounded-xl font-semibold text-sm hover:bg-forest-800 transition-colors"
               >
-                Connect igloohome lock
+                {t('igloohome.configure')}
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
@@ -568,7 +624,7 @@ export default function SettingsPage() {
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-semibold text-forest-800 mb-1.5">Client ID</label>
+                  <label className="block text-sm font-semibold text-forest-800 mb-1.5">{t('igloohome.clientId')}</label>
                   <input
                     type="text"
                     value={igloohomeClientId}
@@ -578,7 +634,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-forest-800 mb-1.5">Client Secret</label>
+                  <label className="block text-sm font-semibold text-forest-800 mb-1.5">{t('igloohome.clientSecret')}</label>
                   <input
                     type="password"
                     value={igloohomeClientSecret}
@@ -623,7 +679,7 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-forest-800 mb-1.5">Lock ID (Bluetooth Device ID)</label>
+                <label className="block text-sm font-semibold text-forest-800 mb-1.5">{t('igloohome.lockId')}</label>
                 <input
                   type="text"
                   value={igloohomeLockId}
@@ -666,7 +722,7 @@ export default function SettingsPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <p className="text-sm font-semibold text-forest-800">igloohome lock connected</p>
+                  <p className="text-sm font-semibold text-forest-800">{t('igloohome.connected')}</p>
                   {igloohomeLockId && (
                     <p className="text-xs text-forest-600 mt-0.5 font-mono truncate">
                       Lock ID: {igloohomeLockId}
@@ -690,7 +746,7 @@ export default function SettingsPage() {
       {/* Plan & Billing Section */}
       <div className="mt-6">
         <div className="bg-white rounded-2xl border border-warm-200 p-6">
-          <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600 mb-4">Plan &amp; Billing</h2>
+          <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600 mb-4">{t('plan.heading')}</h2>
 
           {settings?.saas_plan !== 'pro' && (
             <div className="space-y-4">
@@ -714,7 +770,7 @@ export default function SettingsPage() {
                     disabled={saasLoading}
                     className="w-full py-2 bg-forest-900 text-white rounded-lg text-sm font-semibold hover:bg-forest-800 disabled:opacity-50 transition-colors"
                   >
-                    {saasLoading ? 'Loading\u2026' : 'Upgrade monthly'}
+                    {saasLoading ? 'Loading\u2026' : t('plan.upgradeToProMonthly')}
                   </button>
                 </div>
                 <div className="border border-forest-700 rounded-xl p-4 ring-1 ring-forest-700 relative">
@@ -730,7 +786,7 @@ export default function SettingsPage() {
                     disabled={saasLoading}
                     className="w-full py-2 bg-forest-900 text-white rounded-lg text-sm font-semibold hover:bg-forest-800 disabled:opacity-50 transition-colors"
                   >
-                    {saasLoading ? 'Loading\u2026' : 'Upgrade yearly'}
+                    {saasLoading ? 'Loading\u2026' : t('plan.upgradeToProYearly')}
                   </button>
                 </div>
               </div>
@@ -755,7 +811,7 @@ export default function SettingsPage() {
                 disabled={portalLoading}
                 className="px-5 py-2.5 border border-forest-700 text-forest-800 rounded-xl text-sm font-semibold hover:bg-forest-50 disabled:opacity-50 transition-colors"
               >
-                {portalLoading ? 'Opening\u2026' : 'Manage Subscription'}
+                {portalLoading ? 'Opening\u2026' : t('plan.manageSubscription')}
               </button>
               {saasError && <p className="text-xs text-red-600">{saasError}</p>}
             </div>
@@ -789,7 +845,7 @@ export default function SettingsPage() {
       {/* Notification Templates */}
       <div className="mt-6">
         <div className="bg-white rounded-2xl border border-warm-200 p-6">
-          <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600 mb-5">Notification Templates</h2>
+          <h2 className="font-display font-bold text-xs uppercase tracking-widest text-forest-600 mb-5">{t('notifications.heading')}</h2>
           <p className="text-xs text-gray-500 mb-4">
             Customize the emails sent to members. Use <code className="bg-warm-100 px-1 rounded">{'{name}'}</code>, <code className="bg-warm-100 px-1 rounded">{'{gym_name}'}</code>, <code className="bg-warm-100 px-1 rounded">{'{access_code}'}</code>, <code className="bg-warm-100 px-1 rounded">{'{amount}'}</code> as placeholders.
           </p>
@@ -797,7 +853,7 @@ export default function SettingsPage() {
             {templates.map(tmpl => (
               <div key={tmpl.type} className="border border-warm-200 rounded-xl overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 bg-warm-50">
-                  <span className="font-semibold text-sm text-forest-800">{TEMPLATE_LABELS[tmpl.type] || tmpl.type}</span>
+                  <span className="font-semibold text-sm text-forest-800">{templateLabels[tmpl.type] || tmpl.type}</span>
                   <button
                     type="button"
                     onClick={() => startEditTemplate(tmpl)}
@@ -810,7 +866,7 @@ export default function SettingsPage() {
                 {editingTemplate === tmpl.type ? (
                   <div className="p-4 space-y-3">
                     <div>
-                      <label className="block text-xs font-semibold text-forest-700 mb-1">Subject</label>
+                      <label className="block text-xs font-semibold text-forest-700 mb-1">{t('notifications.subject')}</label>
                       <input
                         type="text"
                         value={templateSubject}
@@ -819,7 +875,7 @@ export default function SettingsPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-forest-700 mb-1">Body</label>
+                      <label className="block text-xs font-semibold text-forest-700 mb-1">{t('notifications.body')}</label>
                       <textarea
                         value={templateBody}
                         onChange={e => setTemplateBody(e.target.value)}
@@ -835,7 +891,7 @@ export default function SettingsPage() {
                         disabled={savingTemplate}
                         className="px-4 py-2 text-sm bg-forest-900 text-white rounded-lg font-semibold hover:bg-forest-800 disabled:opacity-50 transition-colors"
                       >
-                        {savingTemplate ? 'Saving…' : 'Save template'}
+                        {savingTemplate ? 'Saving…' : t('notifications.save')}
                       </button>
                       <button
                         type="button"

@@ -1,5 +1,5 @@
 import createMiddleware from 'next-intl/middleware';
-import { routing } from './i18n/routing';
+import { routing } from '../i18n/routing';
 import { NextRequest } from 'next/server';
 
 const intlMiddleware = createMiddleware(routing);
@@ -32,13 +32,10 @@ export default function middleware(request: NextRequest) {
     // This lets next-intl handle translated-slug redirects correctly via its pathnames config.
     const headers = new Headers(request.headers);
     headers.set('Accept-Language', preferredLocale);
-    // NextRequest can be constructed from a URL + init object; we forward the essentials
     const modifiedRequest = new NextRequest(request.url, {
       headers,
       method: request.method,
-      // body only needed for mutating requests — middleware never mutates
     });
-    // Copy cookies so next-intl and other middleware can read them
     for (const { name, value } of request.cookies.getAll()) {
       modifiedRequest.cookies.set(name, value);
     }

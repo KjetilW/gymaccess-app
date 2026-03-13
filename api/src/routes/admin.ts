@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { encryptCode, decryptCode, isEncrypted } from '../utils/crypto';
-import { isIgloohomeConfigured, createAlgoPin, deleteAlgoPin } from '../utils/igloohome';
+import { isIgloohomeConfigured } from '../utils/igloohome';
 import { revokeAccessCodes } from './webhooks';
 import Stripe from 'stripe';
 
@@ -143,7 +143,10 @@ adminRoutes.get('/members/:memberId', async (req: AuthRequest, res) => {
               ac.valid_to as access_valid_to,
               s.provider, s.provider_subscription_id, s.start_date, s.end_date as subscription_end_date,
               s.status as subscription_status,
-              g.igloohome_lock_id, g.igloohome_client_id, g.igloohome_client_secret
+              g.igloohome_lock_id, g.igloohome_client_id, g.igloohome_client_secret,
+              odac.code as recent_ondemand_code,
+              odac.valid_from as recent_ondemand_valid_from,
+              odac.valid_to as recent_ondemand_valid_to
        FROM members m
        LEFT JOIN access_codes ac ON m.member_id = ac.member_id AND ac.valid_to IS NULL
        LEFT JOIN subscriptions s ON s.subscription_id = (
@@ -152,6 +155,11 @@ adminRoutes.get('/members/:memberId', async (req: AuthRequest, res) => {
          ORDER BY s2.created_at DESC LIMIT 1
        )
        JOIN gyms g ON m.gym_id = g.gym_id
+       LEFT JOIN access_codes odac ON odac.code_id = (
+         SELECT code_id FROM access_codes
+         WHERE member_id = m.member_id AND source = 'igloohome_direct'
+         ORDER BY valid_from DESC LIMIT 1
+       )
        WHERE m.member_id = $1 AND m.gym_id = $2`,
       [req.params.memberId, req.gymId]
     );
@@ -169,6 +177,9 @@ adminRoutes.get('/members/:memberId', async (req: AuthRequest, res) => {
       ...memberSafe,
       access_code: safeDecrypt(member.access_code),
       igloohome_configured: igloohomeConfigured,
+      recent_ondemand_code: safeDecrypt(member.recent_ondemand_code),
+      recent_ondemand_valid_from: member.recent_ondemand_valid_from,
+      recent_ondemand_valid_to: member.recent_ondemand_valid_to,
     });
   } catch (err) {
     console.error('Get member detail error:', err);
@@ -632,83 +643,7 @@ adminRoutes.put('/settings', async (req: AuthRequest, res) => {
 
 // ─── Igloohome Integration Routes ─────────────────────────────────────
 
-// POST /admin/members/:memberId/igloohome/regenerate — regenerate algoPIN for a member
-adminRoutes.post('/members/:memberId/igloohome/regenerate', async (req: AuthRequest, res) => {
-  try {
-    const { memberId } = req.params;
-
-    const result = await pool.query(
-      `SELECT m.*, g.igloohome_lock_id,
-              g.igloohome_client_id, g.igloohome_client_secret, g.name as gym_name,
-              s.end_date
-       FROM members m
-       JOIN gyms g ON m.gym_id = g.gym_id
-       LEFT JOIN subscriptions s ON s.subscription_id = (
-         SELECT s2.subscription_id FROM subscriptions s2
-         WHERE s2.member_id = m.member_id ORDER BY s2.created_at DESC LIMIT 1
-       )
-       WHERE m.member_id = $1 AND m.gym_id = $2`,
-      [memberId, req.gymId]
-    );
-
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Member not found' });
-    const member = result.rows[0];
-
-    const useIgloohomeDirect = isIgloohomeConfigured(member.igloohome_client_id, member.igloohome_client_secret) && !!member.igloohome_lock_id;
-
-    if (!useIgloohomeDirect) {
-      return res.status(400).json({ error: 'No igloohome integration configured for this gym' });
-    }
-
-    const startsAt = new Date();
-    const endsAt = member.end_date ? new Date(member.end_date) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-    // Delete existing provider codes
-    const existingCodes = await pool.query(
-      "SELECT provider_code_id, source FROM access_codes WHERE member_id = $1 AND valid_to IS NULL",
-      [memberId]
-    );
-    for (const row of existingCodes.rows) {
-      if (row.source === 'igloohome_direct' && row.provider_code_id && member.igloohome_lock_id) {
-        await deleteAlgoPin(member.igloohome_client_id, member.igloohome_client_secret, member.igloohome_lock_id, row.provider_code_id).catch(err =>
-          console.error('Failed to delete old igloohome direct PIN on regenerate:', err)
-        );
-      }
-    }
-
-    // Revoke all existing codes
-    await pool.query(
-      "UPDATE access_codes SET valid_to = NOW() WHERE member_id = $1 AND valid_to IS NULL",
-      [memberId]
-    );
-
-    let newCode: string;
-    let newProviderCodeId: string | null = null;
-    let newSource: string;
-
-    const igResult = await createAlgoPin(
-      member.igloohome_client_id,
-      member.igloohome_client_secret,
-      member.igloohome_lock_id,
-      startsAt,
-      endsAt,
-      `GymAccess - ${member.name}`
-    );
-    if (!igResult) {
-      return res.status(500).json({ error: 'Failed to create new igloohome direct algoPIN' });
-    }
-    newCode = igResult.pin;
-    newProviderCodeId = igResult.pinId;
-    newSource = 'igloohome_direct';
-
-    await pool.query(
-      "INSERT INTO access_codes (member_id, code, valid_from, source, provider_code_id) VALUES ($1, $2, NOW(), $3, $4)",
-      [memberId, encryptCode(newCode), newSource, newProviderCodeId]
-    );
-
-    res.json({ code: newCode, provider_code_id: newProviderCodeId, source: newSource });
-  } catch (err) {
-    console.error('Igloohome regenerate error:', err);
-    res.status(500).json({ error: 'Failed to regenerate igloohome PIN' });
-  }
+// POST /admin/members/:memberId/igloohome/regenerate — deprecated; PINs are now on-demand
+adminRoutes.post('/members/:memberId/igloohome/regenerate', (_req, res) => {
+  res.status(410).json({ error: 'PIN regeneration by admins is no longer supported. Members request on-demand PINs from their personal management page.' });
 });

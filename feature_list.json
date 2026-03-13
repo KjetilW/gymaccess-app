@@ -2697,7 +2697,7 @@
   {
     "category": "functional",
     "description": "DB migration adds igloohome_client_id and igloohome_client_secret columns to gyms table for per-gym credentials",
-    "notes": "Each gym owner has their own igloohome account and must supply OAuth2 credentials from their igloaccess dashboard. Store per-gym instead of platform-wide env vars. Both columns are text, nullable. No encryption required for client_id; client_secret should be treated as sensitive but can be stored plaintext like other secrets in the DB (Stripe keys are stored similarly). Remove IGLOOHOME_CLIENT_ID and IGLOOHOME_CLIENT_SECRET from .env and .env.example — replace with a comment explaining credentials are now entered per-gym in Settings.",
+    "notes": "Each gym owner has their own igloohome account and must supply OAuth2 credentials from their igloaccess dashboard. Store per-gym instead of platform-wide env vars. Both columns are text, nullable. No encryption required for client_id; client_secret should be treated as sensitive but can be stored plaintext like other secrets in the DB (Stripe keys are stored similarly). Remove IGLOOHOME_CLIENT_ID and IGLOOHOME_CLIENT_SECRET from .env and .env.example \u2014 replace with a comment explaining credentials are now entered per-gym in Settings.",
     "steps": [
       "Step 1: Add migration to create columns igloohome_client_id (text, nullable) and igloohome_client_secret (text, nullable) on the gyms table",
       "Step 2: Verify migration runs on API startup without errors",
@@ -2717,20 +2717,20 @@
       "Step 3: Verify PUT with empty string for client_id or client_secret sets the column to NULL",
       "Step 4: Extend GET /admin/settings response to include igloohome_client_id and igloohome_configured (boolean: true when both columns are non-null and non-empty)",
       "Step 5: Verify GET never includes igloohome_client_secret in the response",
-      "Step 6: Verify gym isolation — each gym only sees and updates its own credentials"
+      "Step 6: Verify gym isolation \u2014 each gym only sees and updates its own credentials"
     ],
     "passes": true
   },
   {
     "category": "functional",
     "description": "activateMemberAccess reads igloohome credentials from the gyms table (per-gym) instead of global env vars",
-    "notes": "isIgloohomeConfigured() must be updated to accept the gym's client_id and client_secret from the DB row rather than reading process.env. getAccessToken() and createAlgoPin() must accept clientId and clientSecret as parameters. The activation flow already queries the gym record — just pass igloohome_client_id and igloohome_client_secret from the result. The in-memory token cache should be keyed by clientId to avoid cross-gym token collisions.",
+    "notes": "isIgloohomeConfigured() must be updated to accept the gym's client_id and client_secret from the DB row rather than reading process.env. getAccessToken() and createAlgoPin() must accept clientId and clientSecret as parameters. The activation flow already queries the gym record \u2014 just pass igloohome_client_id and igloohome_client_secret from the result. The in-memory token cache should be keyed by clientId to avoid cross-gym token collisions.",
     "steps": [
       "Step 1: Update isIgloohomeConfigured() in igloohome.ts to accept (clientId, clientSecret) parameters instead of reading env vars",
       "Step 2: Update getAccessToken() to accept (clientId, clientSecret) parameters and key the token cache by clientId",
       "Step 3: Update createAlgoPin() to accept and forward (clientId, clientSecret) to getAccessToken()",
       "Step 4: Update activateMemberAccess() in subscriptions.ts to pass member.igloohome_client_id and member.igloohome_client_secret to isIgloohomeConfigured() and createAlgoPin()",
-      "Step 5: Activate a member for a gym with igloohome_client_id and igloohome_client_secret set in the DB — verify access_codes.source = 'igloohome_direct' and a valid algoPIN is generated",
+      "Step 5: Activate a member for a gym with igloohome_client_id and igloohome_client_secret set in the DB \u2014 verify access_codes.source = 'igloohome_direct' and a valid algoPIN is generated",
       "Step 6: Verify that a gym without credentials set falls back to internal PIN (source = 'internal')",
       "Step 7: Verify no IGLOOHOME_CLIENT_ID or IGLOOHOME_CLIENT_SECRET env var is read anywhere in the igloohome activation path"
     ],
@@ -2739,14 +2739,14 @@
   {
     "category": "functional",
     "description": "Settings page has input fields for igloohome Client ID and Client Secret alongside Lock ID; secret field is masked and shows a 'configured' indicator after saving",
-    "notes": "The existing igloohome Direct section in Settings already has a Lock ID input. Add two more fields: Client ID (text input, value pre-filled from GET /admin/settings igloohome_client_id) and Client Secret (password input, always blank on load since the API never returns it — show a 'Configured' badge/indicator when igloohome_configured=true). All three fields (Lock ID, Client ID, Client Secret) are saved together with the existing Save Lock ID button (rename to 'Save igloohome Settings'). Clearing all three and saving disables the integration.",
+    "notes": "The existing igloohome Direct section in Settings already has a Lock ID input. Add two more fields: Client ID (text input, value pre-filled from GET /admin/settings igloohome_client_id) and Client Secret (password input, always blank on load since the API never returns it \u2014 show a 'Configured' badge/indicator when igloohome_configured=true). All three fields (Lock ID, Client ID, Client Secret) are saved together with the existing Save Lock ID button (rename to 'Save igloohome Settings'). Clearing all three and saving disables the integration.",
     "steps": [
       "Step 1: Add 'Client ID' text input field to the igloohome Direct section in Settings, pre-filled with igloohome_client_id from GET /admin/settings",
-      "Step 2: Add 'Client Secret' password input field — always starts blank on page load",
+      "Step 2: Add 'Client Secret' password input field \u2014 always starts blank on page load",
       "Step 3: When igloohome_configured=true (from GET response), show a green 'Configured' badge next to the Client Secret field indicating a secret is already saved",
       "Step 4: When igloohome_configured=false, show no badge and Client Secret field is required to enable the integration",
       "Step 5: Rename the save button to 'Save igloohome Settings' and have it submit Lock ID, Client ID, and Client Secret together via PUT /admin/settings",
-      "Step 6: If Client Secret field is left blank on save, do not overwrite the existing secret in the DB (send a sentinel value or omit the field — API should only update client_secret if a non-empty value is provided)",
+      "Step 6: If Client Secret field is left blank on save, do not overwrite the existing secret in the DB (send a sentinel value or omit the field \u2014 API should only update client_secret if a non-empty value is provided)",
       "Step 7: After successful save with all three fields, UI shows 'Lock ID configured' and 'Configured' badge on Client Secret",
       "Step 8: Admin can clear the integration by emptying all fields and saving"
     ],
@@ -2760,8 +2760,8 @@
       "Step 1: Update deleteAlgoPin() in igloohome.ts to accept (clientId, clientSecret, lockId, pinId) instead of reading env vars",
       "Step 2: Update revokeMemberAccess() or equivalent cancellation/suspension logic to query gym credentials and pass to deleteAlgoPin()",
       "Step 3: Update POST /admin/members/:id/igloohome/regenerate to query gym credentials and use them for both deletion of old PIN and creation of new PIN",
-      "Step 4: Cancel a subscription for a member with igloohome direct active — verify the API calls igloohome DELETE with the gym's own credentials",
-      "Step 5: Manually regenerate a PIN via the admin UI — verify old PIN is deleted and new PIN created using per-gym credentials",
+      "Step 4: Cancel a subscription for a member with igloohome direct active \u2014 verify the API calls igloohome DELETE with the gym's own credentials",
+      "Step 5: Manually regenerate a PIN via the admin UI \u2014 verify old PIN is deleted and new PIN created using per-gym credentials",
       "Step 6: Verify graceful degradation: if gym credentials are missing or the igloohome API call fails, the member status update still completes and the error is logged"
     ],
     "passes": true
@@ -2869,6 +2869,238 @@
       "Step 5: Verify pricing card is full-width and readable on mobile",
       "Step 6: Verify FAQ accordion works on mobile with touch",
       "Step 7: Verify no horizontal overflow on any section"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Member management page (/manage/[token]) shows access control section with 'Unlock with Bluetooth' and 'Get Door PIN' buttons when igloohome is configured for the gym",
+    "notes": "The member page already exists at /manage/[token]. Add an access controls section below membership status. 'Unlock with Bluetooth' is the primary access method. 'Get Door PIN' is the backup method. Both buttons only appear when the gym has igloohome configured (igloohome_client_id, igloohome_client_secret, and igloohome_lock_id set). Buttons are disabled/hidden when membership is not active.",
+    "steps": [
+      "Step 1: Navigate to /manage/[token] for an active member whose gym has igloohome configured",
+      "Step 2: Verify the page shows membership status, gym name, and subscription management",
+      "Step 3: Verify an 'Access Controls' section is visible below the membership info",
+      "Step 4: Verify 'Unlock with Bluetooth' button is displayed as the primary action",
+      "Step 5: Verify 'Get Door PIN' button is displayed as the backup/secondary action",
+      "Step 6: Navigate to /manage/[token] for a member whose gym does NOT have igloohome configured",
+      "Step 7: Verify the access controls section is not shown (or shows only internal PIN if applicable)",
+      "Step 8: Navigate to /manage/[token] for a cancelled/expired member with igloohome gym",
+      "Step 9: Verify the access control buttons are disabled or hidden with a message that membership must be active"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "POST /access/request-pin endpoint generates an on-demand igloohome AlgoPIN for an active member, authenticated via manage token",
+    "notes": "New API endpoint for on-demand PIN generation. Authenticated via the member's manage_token (same token used for /manage/[token] page). The endpoint verifies: (1) valid manage token, (2) member status is 'active', (3) gym has igloohome configured. On success, calls igloohome API to create an AlgoPIN with a 2-hour validity window, stores it in access_codes with source='igloohome_direct', and returns the PIN and validity time.",
+    "steps": [
+      "Step 1: Call POST /access/request-pin with valid manage_token for an active member with igloohome configured",
+      "Step 2: Verify response contains { pin: '...', valid_until: '...' } with a 2-hour validity window",
+      "Step 3: Verify the PIN is a 7-9 digit number from the igloohome API",
+      "Step 4: Verify the PIN is stored encrypted in access_codes table with source='igloohome_direct'",
+      "Step 5: Verify access_codes record has valid_from=now and valid_to=now+2hours",
+      "Step 6: Call POST /access/request-pin with invalid manage_token \u2014 verify 401 Unauthorized",
+      "Step 7: Call POST /access/request-pin for a cancelled/expired member \u2014 verify 403 with message 'Membership must be active'",
+      "Step 8: Call POST /access/request-pin for a member whose gym has no igloohome configured \u2014 verify 404 or appropriate error"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "On-demand PIN reuse: if a PIN was generated for the member less than 2 hours ago, the existing PIN is returned instead of generating a new one",
+    "notes": "Before calling the igloohome API, the endpoint checks access_codes for a recent PIN (source='igloohome_direct', created within last 2 hours, valid_to still in the future). If found, returns the existing PIN (decrypted) and its valid_until time. This prevents unnecessary PIN generation and avoids hitting lock storage limits.",
+    "steps": [
+      "Step 1: Call POST /access/request-pin for an active member \u2014 a new PIN is generated",
+      "Step 2: Call POST /access/request-pin again immediately for the same member",
+      "Step 3: Verify the same PIN is returned (not a new one)",
+      "Step 4: Verify no new igloohome API call was made (same access_codes record reused)",
+      "Step 5: Verify the valid_until time matches the original PIN's expiry",
+      "Step 6: Wait until the PIN is older than 2 hours (or simulate with DB update)",
+      "Step 7: Call POST /access/request-pin again \u2014 verify a new PIN is generated via igloohome API",
+      "Step 8: Verify the old access_code record is superseded and a new one is created"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "On-demand PIN rate limiting: maximum 3 new PIN generations per hour per member to prevent abuse",
+    "notes": "Rate limit applies to actual new PIN generations (not reuses of existing PINs). Count new access_codes with source='igloohome_direct' created in the last hour for the member. If >= 3, return 429 Too Many Requests with a message indicating when the member can request a new PIN. Reuse of existing PINs (within 2-hour window) does not count toward the rate limit.",
+    "steps": [
+      "Step 1: Generate 3 new PINs within 1 hour for the same member (may need to expire each before requesting next)",
+      "Step 2: Request a 4th PIN \u2014 verify 429 Too Many Requests response",
+      "Step 3: Verify the error message indicates when the member can request a new PIN",
+      "Step 4: Verify that reusing an existing PIN (within 2-hour window) does NOT count toward the rate limit",
+      "Step 5: Wait until the oldest PIN generation is more than 1 hour old",
+      "Step 6: Verify a new PIN can be generated again after the rate limit window passes"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "On-demand PIN is generated with a short 2-hour validity window via igloohome AlgoPIN API",
+    "notes": "When creating a new AlgoPIN, set the validity window to 2 hours from the current time. Use the igloohome hourly AlgoPIN endpoint (POST /devices/{lockId}/algopin/hourly). The short window ensures the PIN is used immediately (solving the AlgoPIN activation constraint) and expires quickly.",
+    "steps": [
+      "Step 1: Request a new PIN via POST /access/request-pin",
+      "Step 2: Verify the igloohome API is called with startDatetime=now and endDatetime=now+2hours",
+      "Step 3: Verify the access_codes record has valid_from and valid_to matching the 2-hour window",
+      "Step 4: Verify the PIN response includes valid_until timestamp in ISO 8601 format",
+      "Step 5: Verify the PIN naturally expires after 2 hours (no manual deletion needed)"
+    ],
+    "passes": true
+  },
+  {
+    "category": "ui",
+    "description": "Member page PIN display shows the door PIN code and 'Valid until' time in the user's local timezone after requesting a PIN",
+    "notes": "After pressing 'Get Door PIN', the member page displays the PIN prominently and a 'Valid until: HH:MM' timestamp converted to the user's browser timezone. The PIN should be easy to read (large, spaced digits). Include a countdown or time remaining indicator. The display persists until the page is refreshed or the PIN expires.",
+    "steps": [
+      "Step 1: Press 'Get Door PIN' on the member page",
+      "Step 2: Verify the PIN is displayed in large, readable format (e.g., 'Door PIN: 483920')",
+      "Step 3: Verify 'Valid until: HH:MM' is shown in the user's local timezone",
+      "Step 4: Verify a copy-to-clipboard button is available next to the PIN",
+      "Step 5: Verify the PIN display updates or hides after the validity period expires",
+      "Step 6: Verify loading state is shown while the PIN is being generated",
+      "Step 7: Verify error state is shown if PIN generation fails (e.g., rate limit exceeded, membership inactive)"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Bluetooth self-invite: member can onboard to igloohome Bluetooth access from their personal management page",
+    "notes": "Primary access method. The 'Unlock with Bluetooth' button initiates a flow for the member to set up Bluetooth access via the igloohome mobile app. This involves generating a share/invite link via the igloohome API that allows the member to add the lock to their igloohome app. Once onboarded, the member can unlock directly via Bluetooth without needing a PIN. The exact igloohome API for user invitation/sharing needs to be verified at developer.igloocompany.co.",
+    "steps": [
+      "Step 1: Press 'Unlock with Bluetooth' on the member page for an active member",
+      "Step 2: Verify the system initiates Bluetooth onboarding (e.g., generates an igloohome share/invite link)",
+      "Step 3: Verify the member receives instructions for setting up Bluetooth access via the igloohome app",
+      "Step 4: Verify the invite is scoped to the gym's lock only",
+      "Step 5: Verify only active members can initiate Bluetooth onboarding",
+      "Step 6: Verify that when membership is cancelled/expired, Bluetooth access should be revoked (or documented as a manual admin step)"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Remove automatic igloohome PIN generation from member activation flow (checkout.session.completed webhook)",
+    "notes": "The current activateMemberAccess() function creates an igloohome AlgoPIN on member activation. With the new on-demand strategy, PINs are no longer generated automatically when a member is activated. The activation flow should still: (1) set member status to active, (2) send welcome email, (3) generate internal PIN if igloohome is NOT configured. But it should NOT call igloohome API to create an AlgoPIN. The welcome email should direct the member to their personal page for access.",
+    "steps": [
+      "Step 1: Configure igloohome for a gym (client_id, client_secret, lock_id)",
+      "Step 2: Activate a new member via checkout.session.completed webhook",
+      "Step 3: Verify member status is set to 'active'",
+      "Step 4: Verify NO igloohome API call is made to create an AlgoPIN",
+      "Step 5: Verify NO access_codes record with source='igloohome_direct' is created during activation",
+      "Step 6: Verify welcome email is sent but does NOT contain an AlgoPIN",
+      "Step 7: Verify welcome email contains a link to the member's personal management page for accessing the gym",
+      "Step 8: Verify that for gyms WITHOUT igloohome, internal PIN generation during activation still works as before"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Remove automatic igloohome PIN regeneration from subscription renewal webhook (invoice.payment_succeeded)",
+    "notes": "The current renewal handler creates a new AlgoPIN for the next billing period and deletes the old one. With on-demand PINs, this is no longer needed. The renewal webhook should still update subscription dates and send payment receipt, but should NOT call igloohome API. On-demand PINs with 2-hour validity expire naturally.",
+    "steps": [
+      "Step 1: Set up an active member with igloohome configured",
+      "Step 2: Trigger invoice.payment_succeeded webhook for subscription renewal",
+      "Step 3: Verify subscription dates are updated correctly",
+      "Step 4: Verify NO igloohome API call is made (no new AlgoPIN created, no old PIN deleted)",
+      "Step 5: Verify payment receipt notification is still sent",
+      "Step 6: Verify member can still request on-demand PINs after renewal"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Remove automatic igloohome PIN deletion from cancellation and payment failure webhooks",
+    "notes": "The current handlers call igloohome API DELETE to revoke PINs on cancellation (customer.subscription.deleted) and payment failure (invoice.payment_failed). With short-lived on-demand PINs (2-hour validity), PINs expire naturally. The webhooks should still update member status and send notifications, but should NOT call igloohome API to delete PINs. Access control is enforced by the on-demand endpoint checking membership status before generating new PINs.",
+    "steps": [
+      "Step 1: Set up an active member with igloohome configured who has a recently generated on-demand PIN",
+      "Step 2: Trigger customer.subscription.deleted webhook",
+      "Step 3: Verify member status is updated to 'cancelled'",
+      "Step 4: Verify NO igloohome API DELETE call is made",
+      "Step 5: Verify cancellation email is sent",
+      "Step 6: Verify the member can no longer request new PINs (POST /access/request-pin returns 403)",
+      "Step 7: Trigger invoice.payment_failed for another active member",
+      "Step 8: Verify member status is updated to 'past_due'",
+      "Step 9: Verify NO igloohome API DELETE call is made for payment failure",
+      "Step 10: Verify past_due members cannot request new on-demand PINs"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Welcome email for igloohome gyms includes link to member management page for access instead of a PIN code",
+    "notes": "When igloohome is configured, the welcome email should NOT include an AlgoPIN (since PINs are now on-demand). Instead, it should prominently include the member's personal management page URL (/manage/[token]) with clear instructions to use this page to access the gym. The email should explain both access methods: Bluetooth (primary) and on-demand door PIN (backup).",
+    "steps": [
+      "Step 1: Activate a new member for a gym with igloohome configured",
+      "Step 2: Verify the welcome email is sent",
+      "Step 3: Verify the email does NOT contain an AlgoPIN code",
+      "Step 4: Verify the email contains a link to the member's personal management page",
+      "Step 5: Verify the email explains how to access the gym: set up Bluetooth (primary) and request a door PIN (backup)",
+      "Step 6: Verify the welcome email template supports the new content via template variables"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Admin member detail page reflects on-demand access model: shows access method info instead of a stored PIN for igloohome gyms",
+    "notes": "For gyms with igloohome configured, the admin member detail page should show: (1) whether the member has Bluetooth access set up, (2) the member's most recent on-demand PIN and when it was generated (if any), (3) the rate limit status. It should NOT show a 'Regenerate PIN' button since PINs are now member-initiated. The admin can still see access history.",
+    "steps": [
+      "Step 1: Navigate to admin member detail page for a member of an igloohome-configured gym",
+      "Step 2: Verify the page shows 'Access Method: On-demand PIN / Bluetooth' instead of a stored PIN",
+      "Step 3: Verify the page shows the member's most recent on-demand PIN (if any) with generation timestamp",
+      "Step 4: Verify no 'Regenerate PIN' button is shown (PINs are member-initiated)",
+      "Step 5: Verify for gyms without igloohome, the existing internal PIN display remains unchanged"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "On-demand PIN generation uses per-gym igloohome credentials from the gyms table",
+    "notes": "The POST /access/request-pin endpoint must look up the gym's igloohome_client_id, igloohome_client_secret, and igloohome_lock_id from the gyms table. It uses these per-gym credentials to authenticate with the igloohome API and generate the AlgoPIN. The token cache should be keyed by client_id to avoid cross-gym collisions.",
+    "steps": [
+      "Step 1: Configure gym A with igloohome credentials (client_id_A, secret_A, lock_id_A)",
+      "Step 2: Configure gym B with different igloohome credentials (client_id_B, secret_B, lock_id_B)",
+      "Step 3: Request a PIN for a member of gym A \u2014 verify igloohome API is called with gym A's credentials",
+      "Step 4: Request a PIN for a member of gym B \u2014 verify igloohome API is called with gym B's credentials",
+      "Step 5: Verify token cache maintains separate tokens per gym (keyed by client_id)",
+      "Step 6: Verify if gym credentials are missing/incomplete, the endpoint returns an appropriate error"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "On-demand PIN generation handles igloohome API errors gracefully with clear user-facing error messages",
+    "notes": "If the igloohome API call fails (network error, auth error, rate limit, invalid lock_id), the endpoint should return a clear error message to the member. Errors should be logged for admin visibility. The member's status should not be affected by PIN generation failures.",
+    "steps": [
+      "Step 1: Request a PIN when igloohome API returns an authentication error \u2014 verify clear error message",
+      "Step 2: Request a PIN when igloohome API returns a network timeout \u2014 verify clear error message",
+      "Step 3: Request a PIN with an invalid lock_id \u2014 verify clear error message",
+      "Step 4: Verify all igloohome API errors are logged with sufficient detail for debugging",
+      "Step 5: Verify the member's active status is not affected by any PIN generation failure"
+    ],
+    "passes": true
+  },
+  {
+    "category": "ui",
+    "description": "Member management page access controls section has clear visual hierarchy with Bluetooth as primary and Door PIN as secondary",
+    "notes": "The access controls section should visually emphasize Bluetooth as the primary method (larger button, top position) and Door PIN as backup (secondary styling, below Bluetooth). Include brief helper text explaining each method. The section should be mobile-friendly since members will use it at the gym door on their phones.",
+    "steps": [
+      "Step 1: Navigate to /manage/[token] on a mobile viewport (375px wide)",
+      "Step 2: Verify 'Unlock with Bluetooth' is prominently displayed as primary action",
+      "Step 3: Verify 'Get Door PIN' is displayed as secondary/backup action with appropriate styling",
+      "Step 4: Verify brief helper text explains each access method",
+      "Step 5: Verify buttons are large enough for easy tapping on mobile",
+      "Step 6: Verify the section is responsive and readable on both mobile and desktop"
+    ],
+    "passes": true
+  },
+  {
+    "category": "functional",
+    "description": "Remove the admin 'Regenerate igloohome PIN' endpoint and UI since PINs are now on-demand and member-initiated",
+    "notes": "POST /admin/members/:id/igloohome/regenerate is no longer needed because PINs are generated on-demand by members, not by admins. Remove or deprecate this endpoint. Remove the 'Regenerate PIN' button from the admin member detail page for igloohome gyms.",
+    "steps": [
+      "Step 1: Verify POST /admin/members/:id/igloohome/regenerate returns 410 Gone or is removed entirely",
+      "Step 2: Verify the admin member detail page does not show a 'Regenerate PIN' button for igloohome-configured gyms",
+      "Step 3: Verify internal PIN regeneration for non-igloohome gyms is unaffected"
     ],
     "passes": true
   }

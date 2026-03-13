@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db';
 import crypto from 'crypto';
 import { encryptCode, decryptCode, isEncrypted } from '../utils/crypto';
+import { isIgloohomeConfigured, createAlgoPin } from '../utils/igloohome';
 
 export const accessRoutes = Router();
 
@@ -101,6 +102,170 @@ accessRoutes.post('/revoke', async (req, res) => {
     res.json({ revoked: result.rowCount, codes: result.rows });
   } catch (err) {
     console.error('Revoke access code error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /access/request-pin — on-demand igloohome AlgoPIN for an active member
+// Authenticated via manage_token (same token used for /manage/[token] page)
+accessRoutes.post('/request-pin', async (req, res) => {
+  try {
+    const { manage_token } = req.body;
+    if (!manage_token) {
+      return res.status(401).json({ error: 'manage_token is required' });
+    }
+
+    // Look up member + gym credentials via manage_token
+    const memberResult = await pool.query(
+      `SELECT m.member_id, m.name, m.status,
+              g.igloohome_client_id, g.igloohome_client_secret, g.igloohome_lock_id
+       FROM members m
+       JOIN gyms g ON m.gym_id = g.gym_id
+       WHERE m.manage_token = $1`,
+      [manage_token]
+    );
+
+    if (memberResult.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid or unknown token' });
+    }
+
+    const member = memberResult.rows[0];
+
+    if (member.status !== 'active') {
+      return res.status(403).json({ error: 'Membership must be active to request a door PIN' });
+    }
+
+    if (!isIgloohomeConfigured(member.igloohome_client_id, member.igloohome_client_secret) || !member.igloohome_lock_id) {
+      return res.status(404).json({ error: 'This gym does not have igloohome configured' });
+    }
+
+    // Reuse check: if a PIN was generated less than 2 hours ago and is still valid, return it
+    const recentPin = await pool.query(
+      `SELECT code, valid_to FROM access_codes
+       WHERE member_id = $1 AND source = 'igloohome_direct'
+         AND valid_to > NOW()
+         AND valid_from > NOW() - INTERVAL '2 hours'
+       ORDER BY valid_from DESC LIMIT 1`,
+      [member.member_id]
+    );
+
+    if (recentPin.rows.length > 0) {
+      const existing = recentPin.rows[0];
+      const pin = isEncrypted(existing.code) ? decryptCode(existing.code) : existing.code;
+      return res.json({ pin, valid_until: existing.valid_to });
+    }
+
+    // Rate limit: max 3 new PIN generations per hour per member
+    const rateCheck = await pool.query(
+      `SELECT COUNT(*) as count FROM access_codes
+       WHERE member_id = $1 AND source = 'igloohome_direct'
+         AND valid_from > NOW() - INTERVAL '1 hour'`,
+      [member.member_id]
+    );
+    const newPinsThisHour = parseInt(rateCheck.rows[0].count, 10);
+
+    if (newPinsThisHour >= 3) {
+      // Find when the oldest of those 3 was created so we can tell the member when to retry
+      const oldest = await pool.query(
+        `SELECT valid_from FROM access_codes
+         WHERE member_id = $1 AND source = 'igloohome_direct'
+           AND valid_from > NOW() - INTERVAL '1 hour'
+         ORDER BY valid_from ASC LIMIT 1`,
+        [member.member_id]
+      );
+      const retryAfter = oldest.rows[0]
+        ? new Date(new Date(oldest.rows[0].valid_from).getTime() + 60 * 60 * 1000)
+        : new Date(Date.now() + 60 * 60 * 1000);
+      return res.status(429).json({
+        error: `Rate limit exceeded. You can request a new PIN after ${retryAfter.toISOString()}`,
+        retry_after: retryAfter,
+      });
+    }
+
+    // Generate 2-hour AlgoPIN via igloohome API
+    const startsAt = new Date();
+    const endsAt = new Date(startsAt.getTime() + 2 * 60 * 60 * 1000);
+
+    let igResult: { pin: string; pinId: string } | null = null;
+    try {
+      igResult = await createAlgoPin(
+        member.igloohome_client_id,
+        member.igloohome_client_secret,
+        member.igloohome_lock_id,
+        startsAt,
+        endsAt,
+        `GymAccess On-Demand`
+      );
+    } catch (err: any) {
+      console.error('igloohome createAlgoPin error in request-pin:', err);
+      return res.status(502).json({ error: 'Failed to generate PIN. Please try again or contact your gym.' });
+    }
+
+    if (!igResult) {
+      console.error('igloohome createAlgoPin returned null for member', member.member_id);
+      return res.status(502).json({ error: 'Failed to generate PIN. Please try again or contact your gym.' });
+    }
+
+    // Store encrypted PIN in access_codes with explicit valid_to (2 hours)
+    await pool.query(
+      `INSERT INTO access_codes (member_id, code, valid_from, valid_to, source, provider_code_id)
+       VALUES ($1, $2, $3, $4, 'igloohome_direct', $5)`,
+      [member.member_id, encryptCode(igResult.pin), startsAt, endsAt, igResult.pinId]
+    );
+
+    res.json({ pin: igResult.pin, valid_until: endsAt });
+  } catch (err) {
+    console.error('Request PIN error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /access/request-bluetooth — initiate Bluetooth onboarding instructions for an active member
+accessRoutes.post('/request-bluetooth', async (req, res) => {
+  try {
+    const { manage_token } = req.body;
+    if (!manage_token) {
+      return res.status(401).json({ error: 'manage_token is required' });
+    }
+
+    const memberResult = await pool.query(
+      `SELECT m.member_id, m.name, m.status,
+              g.name as gym_name, g.igloohome_client_id, g.igloohome_client_secret, g.igloohome_lock_id
+       FROM members m
+       JOIN gyms g ON m.gym_id = g.gym_id
+       WHERE m.manage_token = $1`,
+      [manage_token]
+    );
+
+    if (memberResult.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid or unknown token' });
+    }
+
+    const member = memberResult.rows[0];
+
+    if (member.status !== 'active') {
+      return res.status(403).json({ error: 'Membership must be active to set up Bluetooth access' });
+    }
+
+    if (!isIgloohomeConfigured(member.igloohome_client_id, member.igloohome_client_secret) || !member.igloohome_lock_id) {
+      return res.status(404).json({ error: 'This gym does not have igloohome configured' });
+    }
+
+    // Return Bluetooth onboarding instructions
+    // Note: igloohome guest user invite API requires iglooconnect (partnership flow);
+    // for now, provide instructions to set up via the igloohome app.
+    res.json({
+      lock_id: member.igloohome_lock_id,
+      gym_name: member.gym_name,
+      instructions: [
+        'Download the igloohome app from the App Store or Google Play.',
+        `Open the igloohome app and tap "Add Lock" to add the gym lock (ID: ${member.igloohome_lock_id}).`,
+        'Once added, you can unlock the gym door directly via Bluetooth without needing a PIN.',
+        'Contact your gym administrator if you need help getting started.',
+      ],
+    });
+  } catch (err) {
+    console.error('Request Bluetooth error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

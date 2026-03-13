@@ -15,6 +15,18 @@ interface MemberInfo {
   gym_name: string;
   membership_price: number;
   billing_interval: string;
+  igloohome_configured: boolean;
+}
+
+interface PinResult {
+  pin: string;
+  valid_until: string;
+}
+
+interface BluetoothResult {
+  lock_id: string;
+  gym_name: string;
+  instructions: string[];
 }
 
 export default function ManagePageClient() {
@@ -27,6 +39,15 @@ export default function ManagePageClient() {
   const [member, setMember] = useState<MemberInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
+
+  // Access controls state
+  const [pinLoading, setPinLoading] = useState(false);
+  const [pinResult, setPinResult] = useState<PinResult | null>(null);
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [pinCopied, setPinCopied] = useState(false);
+  const [btLoading, setBtLoading] = useState(false);
+  const [btResult, setBtResult] = useState<BluetoothResult | null>(null);
+  const [btError, setBtError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${API_URL}/subscriptions/manage/${token}`)
@@ -55,6 +76,57 @@ export default function ManagePageClient() {
       setError(err.message);
       setPortalLoading(false);
     }
+  }
+
+  async function requestPin() {
+    setPinLoading(true);
+    setPinError(null);
+    try {
+      const res = await fetch(`${API_URL}/access/request-pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manage_token: token }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to get PIN');
+      setPinResult(data);
+    } catch (err: any) {
+      setPinError(err.message);
+    } finally {
+      setPinLoading(false);
+    }
+  }
+
+  async function requestBluetooth() {
+    setBtLoading(true);
+    setBtError(null);
+    try {
+      const res = await fetch(`${API_URL}/access/request-bluetooth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ manage_token: token }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to get Bluetooth info');
+      setBtResult(data);
+    } catch (err: any) {
+      setBtError(err.message);
+    } finally {
+      setBtLoading(false);
+    }
+  }
+
+  async function copyPin() {
+    if (!pinResult?.pin) return;
+    try {
+      await navigator.clipboard.writeText(pinResult.pin);
+      setPinCopied(true);
+      setTimeout(() => setPinCopied(false), 2000);
+    } catch { /* ignore */ }
+  }
+
+  function formatLocalTime(isoString: string) {
+    return new Date(isoString).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
   }
 
   const intervalLabel = member?.billing_interval === 'yearly' ? t('interval.year') : t('interval.month');
@@ -153,6 +225,91 @@ export default function ManagePageClient() {
               {member.status === 'suspended' && (
                 <div className="bg-warm-50 border border-warm-200 rounded-xl p-4 text-sm text-gray-600 text-center">
                   {t('states.suspended')}
+                </div>
+              )}
+
+              {/* Access Controls — only shown for igloohome gyms */}
+              {member.igloohome_configured && (
+                <div className="mt-6 border-t border-warm-200 pt-6">
+                  <h2 className="font-display font-semibold text-base text-forest-900 mb-1">Gym Access</h2>
+                  <p className="text-xs text-gray-500 mb-4">Use Bluetooth or a PIN code to enter the gym.</p>
+
+                  {member.status !== 'active' && (
+                    <div className="bg-warm-50 border border-warm-200 rounded-xl p-3 text-sm text-gray-600 text-center mb-4">
+                      Access controls are only available for active memberships.
+                    </div>
+                  )}
+
+                  {/* Primary: Bluetooth */}
+                  <button
+                    onClick={requestBluetooth}
+                    disabled={member.status !== 'active' || btLoading}
+                    className="w-full flex items-center justify-center gap-2 bg-forest-900 hover:bg-forest-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-4 px-4 rounded-xl transition-colors mb-3 min-h-[56px]"
+                  >
+                    {btLoading ? (
+                      <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L12 22M12 2L18 8M12 2L6 8M12 22L18 16M12 22L6 16" />
+                      </svg>
+                    )}
+                    Unlock with Bluetooth
+                  </button>
+                  <p className="text-xs text-gray-500 text-center mb-4">Recommended — unlock hands-free via the igloohome app</p>
+
+                  {btResult && (
+                    <div className="bg-forest-50 border border-forest-200 rounded-xl p-4 mb-4 text-sm text-forest-900">
+                      <p className="font-semibold mb-2">Set up Bluetooth access</p>
+                      <ol className="space-y-1 list-decimal list-inside text-xs text-gray-700">
+                        {btResult.instructions.map((step, i) => (
+                          <li key={i}>{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+                  {btError && (
+                    <p className="text-xs text-red-600 text-center mb-4">{btError}</p>
+                  )}
+
+                  {/* Secondary: Door PIN */}
+                  <button
+                    onClick={requestPin}
+                    disabled={member.status !== 'active' || pinLoading}
+                    className="w-full flex items-center justify-center gap-2 bg-white hover:bg-warm-50 disabled:opacity-50 disabled:cursor-not-allowed border border-warm-300 text-forest-800 font-medium py-3 px-4 rounded-xl transition-colors min-h-[48px]"
+                  >
+                    {pinLoading ? (
+                      <span className="w-4 h-4 border-2 border-forest-600 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    )}
+                    Get Door PIN
+                  </button>
+                  <p className="text-xs text-gray-500 text-center mt-1 mb-3">Backup option — a 2-hour PIN code for the keypad</p>
+
+                  {pinResult && (
+                    <div className="bg-forest-50 border border-forest-200 rounded-xl p-4 mt-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-forest-600">Door PIN</span>
+                        <button
+                          onClick={copyPin}
+                          className="text-xs text-forest-700 hover:text-forest-900 border border-forest-300 rounded-lg px-2 py-1 transition-colors"
+                        >
+                          {pinCopied ? '✓ Copied' : 'Copy'}
+                        </button>
+                      </div>
+                      <div className="font-mono text-3xl font-bold text-forest-900 tracking-widest text-center py-2">
+                        {pinResult.pin.split('').join(' ')}
+                      </div>
+                      <p className="text-xs text-gray-500 text-center">
+                        Valid until {formatLocalTime(pinResult.valid_until)}
+                      </p>
+                    </div>
+                  )}
+                  {pinError && (
+                    <p className="text-xs text-red-600 text-center mt-2">{pinError}</p>
+                  )}
                 </div>
               )}
 

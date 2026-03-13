@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db';
 import crypto from 'crypto';
 import { encryptCode, decryptCode, isEncrypted } from '../utils/crypto';
-import { isIgloohomeConfigured, createAlgoPin, deleteAlgoPin } from '../utils/igloohome';
+import { isIgloohomeConfigured } from '../utils/igloohome';
 import Stripe from 'stripe';
 
 const stripe = process.env.STRIPE_API_KEY
@@ -17,7 +17,7 @@ function generatePin(length: number = 4): string {
 }
 
 // Generate access code and queue welcome notification for a newly activated member
-// subscriptionEndDate: optional end date for the subscription period (used for igloohome algoPIN time-bound)
+// For igloohome gyms: no PIN is created on activation — members request on-demand PINs themselves.
 export async function activateMemberAccess(memberId: string, subscriptionEndDate?: Date): Promise<string | null> {
   const memberResult = await pool.query(
     `SELECT m.*, g.access_type, g.shared_pin, g.name as gym_name,
@@ -33,43 +33,33 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
   const member = memberResult.rows[0];
   const codeLength = parseInt(process.env.ACCESS_CODE_LENGTH || '4');
 
-  // Priority: (1) igloohome direct if lock_id set and credentials configured
-  //           (2) internal PIN
   const useIgloohomeDirect = isIgloohomeConfigured(member.igloohome_client_id, member.igloohome_client_secret) && !!member.igloohome_lock_id;
-
-  let code: string;
-  let providerCodeId: string | null = null;
-  let codeSource: string = 'internal';
-  let providerError: string | null = null;
-
-  const startsAt = new Date();
-  const endsAt = subscriptionEndDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const manageLink = member.manage_token ? `${frontendUrl}/manage/${member.manage_token}` : null;
 
   if (useIgloohomeDirect) {
-    // Create algoPIN via igloohome direct API
-    try {
-      const result = await createAlgoPin(
-        member.igloohome_client_id,
-        member.igloohome_client_secret,
-        member.igloohome_lock_id,
-        startsAt,
-        endsAt,
-        `GymAccess - ${member.name}`
-      );
-      if (result) {
-        code = result.pin;
-        providerCodeId = result.pinId;
-        codeSource = 'igloohome_direct';
-      } else {
-        providerError = 'igloohome API returned null';
-        code = generatePin(codeLength);
-      }
-    } catch (err: any) {
-      providerError = String(err?.message || err);
-      console.error('igloohome direct PIN creation failed, falling back to internal PIN:', providerError);
-      code = generatePin(codeLength);
-    }
-  } else if (member.access_type === 'shared_pin') {
+    // igloohome gym: PINs are on-demand; do NOT create an AlgoPIN on activation.
+    // Revoke any stale codes from previous activations.
+    await pool.query(
+      "UPDATE access_codes SET valid_to = NOW() WHERE member_id = $1 AND valid_to IS NULL",
+      [memberId]
+    );
+
+    // Welcome email directs member to their personal management page for access
+    const manageLinkText = manageLink ? `\n\nAccess the gym:\n${manageLink}\n\nFrom your personal page you can:\n- Set up Bluetooth access (primary) via the igloohome app\n- Request a door PIN (backup)` : '';
+    const emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nTo access the gym, visit your personal membership page:${manageLinkText}\n\nBest regards,\n${member.gym_name}`;
+
+    await pool.query(
+      `INSERT INTO notifications (member_id, type, channel, recipient, subject, body, status)
+       VALUES ($1, 'welcome', 'email', $2, $3, $4, 'pending')`,
+      [memberId, member.email, `Welcome to ${member.gym_name}!`, emailBody]
+    );
+    return null;
+  }
+
+  // Non-igloohome gym: generate internal PIN as before
+  let code: string;
+
+  if (member.access_type === 'shared_pin') {
     code = member.shared_pin || generatePin(codeLength);
     if (!member.shared_pin) {
       await pool.query('UPDATE gyms SET shared_pin = $1 WHERE gym_id = $2', [code, member.gym_id]);
@@ -93,41 +83,21 @@ export async function activateMemberAccess(memberId: string, subscriptionEndDate
     }
   }
 
-  // Revoke existing codes (also delete from provider if applicable)
-  const existingCodes = await pool.query(
-    "SELECT provider_code_id, source FROM access_codes WHERE member_id = $1 AND valid_to IS NULL",
-    [memberId]
-  );
-  for (const existing of existingCodes.rows) {
-    if (existing.source === 'igloohome_direct' && existing.provider_code_id && member.igloohome_lock_id) {
-      await deleteAlgoPin(member.igloohome_client_id, member.igloohome_client_secret, member.igloohome_lock_id, existing.provider_code_id).catch(err =>
-        console.error('Failed to delete igloohome direct PIN on revoke:', err)
-      );
-    }
-  }
-
+  // Revoke existing codes
   await pool.query(
     "UPDATE access_codes SET valid_to = NOW() WHERE member_id = $1 AND valid_to IS NULL",
     [memberId]
   );
 
-  // Store encrypted code with source and provider_code_id
+  // Store encrypted code
   await pool.query(
     "INSERT INTO access_codes (member_id, code, valid_from, source, provider_code_id) VALUES ($1, $2, NOW(), $3, $4)",
-    [memberId, encryptCode(code!), codeSource, providerCodeId]
+    [memberId, encryptCode(code!), 'internal', null]
   );
 
-  // Build welcome notification body
-  const manageLink = member.manage_token ? `\n\nManage your subscription: ${frontendUrl}/manage/${member.manage_token}` : '';
-  let emailBody: string;
-  if (useIgloohomeDirect && !providerError) {
-    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour igloohome keybox access PIN: ${code}\n\nUse this code on the keybox at the gym entrance. The code is time-bound to your membership period.\n\nBest regards,\n${member.gym_name}${manageLink}`;
-  } else if (providerError) {
-    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code will be provided separately by your gym administrator.\n\nBest regards,\n${member.gym_name}${manageLink}`;
-    console.error(`Provider error for member ${memberId}: ${providerError}`);
-  } else {
-    emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code: ${code}\n\nBest regards,\n${member.gym_name}${manageLink}`;
-  }
+  // Welcome email with PIN
+  const manageLinkLine = manageLink ? `\n\nManage your subscription: ${manageLink}` : '';
+  const emailBody = `Hi ${member.name},\n\nWelcome to ${member.gym_name}! Your membership is now active.\n\nYour access code: ${code}\n\nBest regards,\n${member.gym_name}${manageLinkLine}`;
 
   await pool.query(
     `INSERT INTO notifications (member_id, type, channel, recipient, subject, body, status)
@@ -285,6 +255,7 @@ subscriptionRoutes.get('/manage/:token', async (req, res) => {
     const result = await pool.query(
       `SELECT m.name, m.email, m.status, m.manage_token,
               g.name as gym_name, g.membership_price, g.billing_interval,
+              g.igloohome_client_id, g.igloohome_client_secret, g.igloohome_lock_id,
               s.provider_subscription_id
        FROM members m
        JOIN gyms g ON m.gym_id = g.gym_id
@@ -299,6 +270,7 @@ subscriptionRoutes.get('/manage/:token', async (req, res) => {
       return res.status(404).json({ error: 'Invalid or unknown token' });
     }
     const row = result.rows[0];
+    const igloohome_configured = !!(row.igloohome_client_id && row.igloohome_client_secret && row.igloohome_lock_id);
     res.json({
       name: row.name,
       email: row.email,
@@ -306,6 +278,7 @@ subscriptionRoutes.get('/manage/:token', async (req, res) => {
       gym_name: row.gym_name,
       membership_price: row.membership_price,
       billing_interval: row.billing_interval,
+      igloohome_configured,
     });
   } catch (err) {
     console.error('Manage GET error:', err);

@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { pool } from '../db';
 import crypto from 'crypto';
 import { activateMemberAccess } from './subscriptions';
-import { deleteAlgoPin } from '../utils/igloohome';
 
 export const webhookRoutes = Router();
 
@@ -27,27 +26,8 @@ function verifyStripeSignature(payload: Buffer | string, sigHeader: string, secr
   }
 }
 
-// Revoke all active access codes for a member (DB + provider if applicable)
+// Revoke all active access codes for a member (DB only; on-demand PINs expire naturally)
 export async function revokeAccessCodes(memberId: string) {
-  // Get the gym's per-gym igloohome credentials and lock_id for direct PIN deletion
-  const gymData = await pool.query(
-    `SELECT g.igloohome_lock_id, g.igloohome_client_id, g.igloohome_client_secret
-     FROM members m JOIN gyms g ON m.gym_id = g.gym_id WHERE m.member_id = $1`,
-    [memberId]
-  );
-  const { igloohome_lock_id: igloohomeLockId, igloohome_client_id: clientId, igloohome_client_secret: clientSecret } = gymData.rows[0] || {};
-
-  const activeCodes = await pool.query(
-    "SELECT provider_code_id, source FROM access_codes WHERE member_id = $1 AND valid_to IS NULL",
-    [memberId]
-  );
-  for (const row of activeCodes.rows) {
-    if (row.source === 'igloohome_direct' && row.provider_code_id && igloohomeLockId && clientId && clientSecret) {
-      await deleteAlgoPin(clientId, clientSecret, igloohomeLockId, row.provider_code_id).catch(err =>
-        console.error('igloohome direct deleteAlgoPin failed:', err)
-      );
-    }
-  }
   await pool.query(
     "UPDATE access_codes SET valid_to = NOW() WHERE member_id = $1 AND valid_to IS NULL",
     [memberId]
@@ -104,32 +84,6 @@ async function handleMemberEvent(event: any) {
             "UPDATE members SET status = 'active', updated_at = NOW() WHERE member_id = $1",
             [memberId]
           );
-
-          // Get period end date from invoice for igloohome time-bound PIN
-          const periodEnd = invoice.period_end
-            ? new Date(invoice.period_end * 1000)
-            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-          const activeCode = await pool.query(
-            "SELECT code_id FROM access_codes WHERE member_id = $1 AND valid_to IS NULL",
-            [memberId]
-          );
-          if (activeCode.rows.length === 0) {
-            // No active code — create one (handles all providers)
-            await activateMemberAccess(memberId, periodEnd);
-          } else {
-            // On renewal, refresh provider algoPIN for new billing period
-            const codeInfo = await pool.query(
-              "SELECT source, provider_code_id FROM access_codes WHERE member_id = $1 AND valid_to IS NULL LIMIT 1",
-              [memberId]
-            );
-            const src = codeInfo.rows[0]?.source;
-            if (src === 'igloohome' || src === 'igloohome_direct') {
-              // Revoke old and create new PIN for next period
-              await revokeAccessCodes(memberId);
-              await activateMemberAccess(memberId, periodEnd);
-            }
-          }
 
           if (memberData.rows.length > 0) {
             const m = memberData.rows[0];

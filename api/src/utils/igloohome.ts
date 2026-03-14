@@ -23,7 +23,7 @@ function getApiUrl(): string {
   return process.env.IGLOOHOME_API_URL || 'https://api.igloodeveloper.co/igloohome';
 }
 
-// Format a Date as YYYY-MM-DDThh:00:00+00:00 (igloohome requires hour-aligned UTC datetimes)
+// Format a Date as YYYY-MM-DDThh:00:00+00:00 (igloohome algoPIN requires hour-aligned UTC datetimes)
 function formatIgloohomeDate(date: Date): string {
   const d = new Date(date);
   // Round down to the hour
@@ -121,6 +121,58 @@ export async function createAlgoPin(
     return { pin: String(data.pin), pinId: String(data.pinId) };
   } catch (err) {
     console.error('igloohome createAlgoPin error:', err);
+    return null;
+  }
+}
+
+// Format a Date as YYYY-MM-DDTHH:mm:00+00:00 (ekey API requires seconds to be 00)
+function formatEkeyDate(date: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}` +
+         `T${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:00+00:00`;
+}
+
+// Generate a Bluetooth guest key (ekey) for a device
+// Returns { keyId, bluetoothGuestKey } or null on failure
+export async function createBluetoothGuestKey(
+  clientId: string,
+  clientSecret: string,
+  lockId: string,
+  startsAt: Date,
+  endsAt: Date,
+  permissions: string[] = ['UNLOCK', 'LOCK']
+): Promise<{ keyId: string; bluetoothGuestKey: string } | null> {
+  const token = await getAccessToken(clientId, clientSecret);
+  if (!token) return null;
+
+  const apiUrl = getApiUrl();
+  const body = {
+    startDate: formatEkeyDate(startsAt),
+    endDate: formatEkeyDate(endsAt),
+    permissions,
+  };
+
+  try {
+    const response = await fetch(`${apiUrl}/devices/${lockId}/ekey`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      console.error(`igloohome createBluetoothGuestKey failed (${response.status}): ${errBody}`);
+      return null;
+    }
+
+    const data: any = await response.json();
+    return { keyId: String(data.keyId), bluetoothGuestKey: String(data.bluetoothGuestKey) };
+  } catch (err) {
+    console.error('igloohome createBluetoothGuestKey error:', err);
     return null;
   }
 }

@@ -208,6 +208,31 @@
       "cancelled": "Ditt medlemskap er kansellert. Kontakt treningssenteret ditt for å bli med igjen.",
       "pending": "Ditt medlemskap venter på betaling. Sjekk e-posten din for betalingslenken.",
       "suspended": "Ditt medlemskap er suspendert. Vennligst kontakt treningssenterets administrator."
+    },
+    "access": {
+      "heading": "Treningssentertilgang",
+      "subtitle": "Bruk Bluetooth eller en PIN-kode for å komme inn i treningssenteret.",
+      "inactiveWarning": "Tilgangskontroll er kun tilgjengelig for aktive medlemskap.",
+      "bluetooth": {
+        "setup": "Sett opp Bluetooth-tilgang",
+        "getNew": "Få ny Bluetooth-invitasjon",
+        "recommended": "Anbefalt — lås opp håndfritt via igloohome-appen",
+        "keyLabel": "Bluetooth-tilgangsnøkkel",
+        "copy": "Kopier",
+        "copied": "✓ Kopiert",
+        "howToUse": "Slik bruker du det:",
+        "step1": "Last ned igloohome-appen (App Store eller Google Play)",
+        "step2": "Åpne appen og trykk på Motta tilgang",
+        "step3": "Skriv inn eller lim inn nøkkelen ovenfor",
+        "step4": "Låsen vises i appen din — trykk på den for å låse opp via Bluetooth",
+        "validUntil": "Nøkkel gyldig til {date}"
+      },
+      "pin": {
+        "getPin": "Få dør-PIN",
+        "subtitle": "Reservealternativ — en 2-timers PIN-kode for tastaturet",
+        "label": "Dør-PIN",
+        "validUntil": "Gyldig til {time}"
+      }
     }
   },
   "common": {

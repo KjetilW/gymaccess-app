@@ -24,9 +24,9 @@ interface PinResult {
 }
 
 interface BluetoothResult {
-  lock_id: string;
-  gym_name: string;
-  instructions: string[];
+  keyId: string;
+  bluetoothGuestKey: string;
+  valid_until: string;
 }
 
 export default function ManagePageClient() {
@@ -48,6 +48,7 @@ export default function ManagePageClient() {
   const [btLoading, setBtLoading] = useState(false);
   const [btResult, setBtResult] = useState<BluetoothResult | null>(null);
   const [btError, setBtError] = useState<string | null>(null);
+  const [btKeyCopied, setBtKeyCopied] = useState(false);
 
   useEffect(() => {
     fetch(`${API_URL}/subscriptions/manage/${token}`)
@@ -122,6 +123,15 @@ export default function ManagePageClient() {
       await navigator.clipboard.writeText(pinResult.pin);
       setPinCopied(true);
       setTimeout(() => setPinCopied(false), 2000);
+    } catch { /* ignore */ }
+  }
+
+  async function copyBtKey() {
+    if (!btResult?.bluetoothGuestKey) return;
+    try {
+      await navigator.clipboard.writeText(btResult.bluetoothGuestKey);
+      setBtKeyCopied(true);
+      setTimeout(() => setBtKeyCopied(false), 2000);
     } catch { /* ignore */ }
   }
 
@@ -231,12 +241,12 @@ export default function ManagePageClient() {
               {/* Access Controls — only shown for igloohome gyms */}
               {member.igloohome_configured && (
                 <div className="mt-6 border-t border-warm-200 pt-6">
-                  <h2 className="font-display font-semibold text-base text-forest-900 mb-1">Gym Access</h2>
-                  <p className="text-xs text-gray-500 mb-4">Use Bluetooth or a PIN code to enter the gym.</p>
+                  <h2 className="font-display font-semibold text-base text-forest-900 mb-1">{t('access.heading')}</h2>
+                  <p className="text-xs text-gray-500 mb-4">{t('access.subtitle')}</p>
 
                   {member.status !== 'active' && (
                     <div className="bg-warm-50 border border-warm-200 rounded-xl p-3 text-sm text-gray-600 text-center mb-4">
-                      Access controls are only available for active memberships.
+                      {t('access.inactiveWarning')}
                     </div>
                   )}
 
@@ -253,18 +263,34 @@ export default function ManagePageClient() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L12 22M12 2L18 8M12 2L6 8M12 22L18 16M12 22L6 16" />
                       </svg>
                     )}
-                    Unlock with Bluetooth
+                    {btResult ? t('access.bluetooth.getNew') : t('access.bluetooth.setup')}
                   </button>
-                  <p className="text-xs text-gray-500 text-center mb-4">Recommended — unlock hands-free via the igloohome app</p>
+                  <p className="text-xs text-gray-500 text-center mb-4">{t('access.bluetooth.recommended')}</p>
 
                   {btResult && (
-                    <div className="bg-forest-50 border border-forest-200 rounded-xl p-4 mb-4 text-sm text-forest-900">
-                      <p className="font-semibold mb-2">Set up Bluetooth access</p>
+                    <div className="bg-forest-50 border border-forest-200 rounded-xl p-4 mb-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-forest-600">{t('access.bluetooth.keyLabel')}</span>
+                        <button
+                          onClick={copyBtKey}
+                          className="text-xs text-forest-700 hover:text-forest-900 border border-forest-300 rounded-lg px-2 py-1 transition-colors"
+                        >
+                          {btKeyCopied ? t('access.bluetooth.copied') : t('access.bluetooth.copy')}
+                        </button>
+                      </div>
+                      <div className="font-mono text-xs bg-white border border-forest-200 rounded-lg px-3 py-2 break-all text-forest-900 mb-3 select-all">
+                        {btResult.bluetoothGuestKey}
+                      </div>
+                      <p className="text-xs font-semibold text-forest-800 mb-1">{t('access.bluetooth.howToUse')}</p>
                       <ol className="space-y-1 list-decimal list-inside text-xs text-gray-700">
-                        {btResult.instructions.map((step, i) => (
-                          <li key={i}>{step}</li>
-                        ))}
+                        <li>{t('access.bluetooth.step1')}</li>
+                        <li>{t('access.bluetooth.step2')}</li>
+                        <li>{t('access.bluetooth.step3')}</li>
+                        <li>{t('access.bluetooth.step4')}</li>
                       </ol>
+                      <p className="text-xs text-gray-400 mt-2">
+                        {t('access.bluetooth.validUntil', { date: new Date(btResult.valid_until).toLocaleDateString() })}
+                      </p>
                     </div>
                   )}
                   {btError && (
@@ -284,26 +310,26 @@ export default function ManagePageClient() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                       </svg>
                     )}
-                    Get Door PIN
+                    {t('access.pin.getPin')}
                   </button>
-                  <p className="text-xs text-gray-500 text-center mt-1 mb-3">Backup option — a 2-hour PIN code for the keypad</p>
+                  <p className="text-xs text-gray-500 text-center mt-1 mb-3">{t('access.pin.subtitle')}</p>
 
                   {pinResult && (
                     <div className="bg-forest-50 border border-forest-200 rounded-xl p-4 mt-3">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-forest-600">Door PIN</span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-forest-600">{t('access.pin.label')}</span>
                         <button
                           onClick={copyPin}
                           className="text-xs text-forest-700 hover:text-forest-900 border border-forest-300 rounded-lg px-2 py-1 transition-colors"
                         >
-                          {pinCopied ? '✓ Copied' : 'Copy'}
+                          {pinCopied ? t('access.bluetooth.copied') : t('access.bluetooth.copy')}
                         </button>
                       </div>
                       <div className="font-mono text-3xl font-bold text-forest-900 tracking-widest text-center py-2">
                         {pinResult.pin.split('').join(' ')}
                       </div>
                       <p className="text-xs text-gray-500 text-center">
-                        Valid until {formatLocalTime(pinResult.valid_until)}
+                        {t('access.pin.validUntil', { time: formatLocalTime(pinResult.valid_until) })}
                       </p>
                     </div>
                   )}

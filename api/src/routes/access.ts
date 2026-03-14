@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { pool } from '../db';
 import crypto from 'crypto';
 import { encryptCode, decryptCode, isEncrypted } from '../utils/crypto';
-import { isIgloohomeConfigured, createAlgoPin } from '../utils/igloohome';
+import { isIgloohomeConfigured, createAlgoPin, createBluetoothGuestKey } from '../utils/igloohome';
 
 export const accessRoutes = Router();
 
@@ -220,7 +220,7 @@ accessRoutes.post('/request-pin', async (req, res) => {
   }
 });
 
-// POST /access/request-bluetooth — initiate Bluetooth onboarding instructions for an active member
+// POST /access/request-bluetooth — generate igloohome Bluetooth guest key for an active member
 accessRoutes.post('/request-bluetooth', async (req, res) => {
   try {
     const { manage_token } = req.body;
@@ -251,19 +251,45 @@ accessRoutes.post('/request-bluetooth', async (req, res) => {
       return res.status(404).json({ error: 'This gym does not have igloohome configured' });
     }
 
-    // Return Bluetooth onboarding instructions
-    // Note: igloohome guest user invite API requires iglooconnect (partnership flow);
-    // for now, provide instructions to set up via the igloohome app.
-    res.json({
-      lock_id: member.igloohome_lock_id,
-      gym_name: member.gym_name,
-      instructions: [
-        'Download the igloohome app from the App Store or Google Play.',
-        `Open the igloohome app and tap "Add Lock" to add the gym lock (ID: ${member.igloohome_lock_id}).`,
-        'Once added, you can unlock the gym door directly via Bluetooth without needing a PIN.',
-        'Contact your gym administrator if you need help getting started.',
-      ],
-    });
+    // Reuse an existing valid bluetooth key (valid for more than 1 day remaining)
+    const existing = await pool.query(
+      `SELECT code, provider_code_id, valid_to FROM access_codes
+       WHERE member_id = $1 AND source = 'igloohome_bluetooth'
+         AND valid_to > NOW() + INTERVAL '1 day'
+       ORDER BY valid_from DESC LIMIT 1`,
+      [member.member_id]
+    );
+
+    if (existing.rows.length > 0) {
+      const row = existing.rows[0];
+      const key = isEncrypted(row.code) ? decryptCode(row.code) : row.code;
+      return res.json({ keyId: row.provider_code_id, bluetoothGuestKey: key, valid_until: row.valid_to });
+    }
+
+    // Generate a new Bluetooth guest key valid for 30 days
+    const startsAt = new Date();
+    const endsAt = new Date(startsAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const igResult = await createBluetoothGuestKey(
+      member.igloohome_client_id,
+      member.igloohome_client_secret,
+      member.igloohome_lock_id,
+      startsAt,
+      endsAt
+    );
+
+    if (!igResult) {
+      return res.status(502).json({ error: 'Failed to generate Bluetooth access. Please try again or contact your gym.' });
+    }
+
+    // Store encrypted key in access_codes
+    await pool.query(
+      `INSERT INTO access_codes (member_id, code, valid_from, valid_to, source, provider_code_id)
+       VALUES ($1, $2, $3, $4, 'igloohome_bluetooth', $5)`,
+      [member.member_id, encryptCode(igResult.bluetoothGuestKey), startsAt, endsAt, igResult.keyId]
+    );
+
+    res.json({ keyId: igResult.keyId, bluetoothGuestKey: igResult.bluetoothGuestKey, valid_until: endsAt });
   } catch (err) {
     console.error('Request Bluetooth error:', err);
     res.status(500).json({ error: 'Internal server error' });

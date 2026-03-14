@@ -176,6 +176,9 @@ const migrations = `
 
   -- i18n: per-gym admin language preference
   ALTER TABLE gyms ADD COLUMN IF NOT EXISTS admin_language VARCHAR(10) NOT NULL DEFAULT 'en';
+
+  -- Widen access_codes.code to TEXT for long Bluetooth guest keys (igloohome ekeys)
+  ALTER TABLE access_codes ALTER COLUMN code TYPE TEXT;
 `;
 
 export async function runMigrations() {

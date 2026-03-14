@@ -208,6 +208,31 @@
       "cancelled": "Your membership has been cancelled. Contact your gym to rejoin.",
       "pending": "Your membership is pending payment. Check your email for the payment link.",
       "suspended": "Your membership has been suspended. Please contact your gym administrator."
+    },
+    "access": {
+      "heading": "Gym Access",
+      "subtitle": "Use Bluetooth or a PIN code to enter the gym.",
+      "inactiveWarning": "Access controls are only available for active memberships.",
+      "bluetooth": {
+        "setup": "Set Up Bluetooth Access",
+        "getNew": "Get New Bluetooth Invite",
+        "recommended": "Recommended — unlock hands-free via the igloohome app",
+        "keyLabel": "Bluetooth Access Key",
+        "copy": "Copy",
+        "copied": "✓ Copied",
+        "howToUse": "How to use:",
+        "step1": "Download the igloohome app (App Store or Google Play)",
+        "step2": "Open the app and tap Receive Access",
+        "step3": "Enter or paste the key above",
+        "step4": "The lock will appear in your app — tap it to unlock via Bluetooth",
+        "validUntil": "Key valid until {date}"
+      },
+      "pin": {
+        "getPin": "Get Door PIN",
+        "subtitle": "Backup option — a 2-hour PIN code for the keypad",
+        "label": "Door PIN",
+        "validUntil": "Valid until {time}"
+      }
     }
   },
   "common": {

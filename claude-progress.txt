@@ -514,3 +514,58 @@ Most require real Stripe API keys:
 ### Status
 - **215/215 features passing** — all features complete!
 - No remaining work items
+
+---
+
+## Session 16 - Coding Agent (2026-03-13)
+
+### Completed (239/239 — ALL FEATURES PASSING)
+
+#### igloohome On-Demand PIN Access Model (features 224-239)
+
+**Problem**: The previous implementation created igloohome AlgoPINs automatically on member activation and refreshed them on renewal. The new model is on-demand: members request PINs themselves from their personal management page, with a 2-hour validity window.
+
+**New API endpoint — POST /access/request-pin (features 2, 3, 4, 5, 13, 14)**:
+- Authenticated via `manage_token` (no JWT, same as manage page)
+- Verifies member is active; returns 403 if not
+- Verifies igloohome is configured for the gym; returns 404 if not
+- PIN reuse: if a valid PIN was generated < 2 hours ago, returns it (no new API call)
+- Rate limit: max 3 new PINs per hour per member; returns 429 with `retry_after`
+- Creates 2-hour AlgoPIN via igloohome API (startDatetime=now, endDatetime=now+2h)
+- Stores encrypted PIN in access_codes with source='igloohome_direct' and valid_to set
+- Returns `{ pin, valid_until }` in ISO 8601
+
+**New API endpoint — POST /access/request-bluetooth (feature 7)**:
+- Same auth pattern
+- Returns lock_id, gym_name, and step-by-step instructions for igloohome app setup
+- Note: igloohome guest invite API requires iglooconnect (BD partnership); instructions-based flow implemented
+
+**Removed automatic igloohome PIN management (features 8, 9, 10)**:
+- `activateMemberAccess()`: for igloohome gyms, no AlgoPIN created; welcome email now links to manage page
+- `revokeAccessCodes()` in webhooks.ts: removed igloohome deleteAlgoPin() calls (PINs expire naturally after 2h)
+- `invoice.payment_succeeded`: removed PIN refresh on renewal
+
+**Deprecated admin regenerate endpoint (feature 16)**:
+- `POST /admin/members/:id/igloohome/regenerate` now returns 410 Gone
+- Removed from admin.ts imports (createAlgoPin, deleteAlgoPin no longer used there)
+
+**Welcome email update (feature 11)**:
+- For igloohome gyms: email includes manage page URL and explains both access methods (Bluetooth + on-demand PIN)
+- For non-igloohome gyms: unchanged (includes PIN code)
+
+**Manage page UI update (features 1, 6, 7, 15)**:
+- Added `igloohome_configured` to `GET /subscriptions/manage/:token` response
+- Added "Gym Access" section in ManagePageClient.tsx:
+  - "Unlock with Bluetooth" — primary button (large, forest-900 bg); shows instructions on click
+  - "Get Door PIN" — secondary button (border, smaller); calls request-pin API
+  - PIN display: large spaced digits, "Valid until HH:MM" in local timezone, Copy button
+  - Disabled with message when membership not active
+
+**Admin member detail update (feature 12)**:
+- Shows "igloohome Access" section with on-demand model info
+- Shows most recent on-demand PIN (any, including expired) with timestamps
+- No "Regenerate PIN" button (removed along with state/handler)
+
+### Status
+- **239/239 features passing** — all features complete!
+- No remaining work items
